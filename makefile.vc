@@ -59,7 +59,7 @@ LIBOBJ = src\gaiaaux\gg_sqlaux.obj src\gaiaaux\gg_utf8.obj \
 	src\versioninfo\version.obj src\virtualtext\virtualtext.obj
 SPATIALITE_DLL = spatialite$(VERSION).dll
 
-CFLAGS = /nologo -I.\src\headers -I. -IC:\OSGeo4W\include $(OPTFLAGS)
+CFLAGS = /nologo -I.\src\headers -I. -I..\deps\include $(OPTFLAGS)
 
 default:	all
 
@@ -75,10 +75,10 @@ $(SPATIALITE_DLL):	spatialite_i.lib
 spatialite_i.lib:     $(LIBOBJ)
 	link /debug /dll /out:$(SPATIALITE_DLL) \
 		/implib:spatialite_i.lib $(LIBOBJ) \
-		C:\OSGeo4W\lib\proj_i.lib C:\OSGeo4W\lib\geos_c.lib \
-		C:\OSGeo4w\lib\freexl_i.lib C:\OSGeo4w\lib\iconv.lib \
-		C:\OSGeo4W\lib\sqlite3_i.lib C:\OSGeo4W\lib\zlib.lib \
-		C:\OSGeo4W\lib\libxml2.lib
+		..\deps\lib\proj_i.lib ..\deps\lib\geos_c.lib \
+		..\deps\lib\freexl_i.lib ..\deps\lib\iconv.lib \
+		..\deps\lib\sqlite3_i.lib ..\deps\lib\zlib.lib \
+		..\deps\lib\libxml2.lib
 	if exist $(SPATIALITE_DLL).manifest mt -manifest \
 		$(SPATIALITE_DLL).manifest -outputresource:$(SPATIALITE_DLL);2
 		
