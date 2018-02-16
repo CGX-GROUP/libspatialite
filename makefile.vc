@@ -77,7 +77,7 @@ spatialite_i.lib:     $(LIBOBJ)
 		/implib:spatialite_i.lib $(LIBOBJ) \
 		..\deps\lib\proj_i.lib ..\deps\lib\geos_c_i.lib \
 		..\deps\lib\freexl_i.lib ..\deps\lib\libiconv.lib \
-		..\deps\lib\sqlite3_i.lib ..\deps\lib\zlib.lib \
+		..\deps\lib\sqlite3.lib ..\deps\lib\zlib.lib \
 		..\deps\lib\libxml2.lib
 	if exist $(SPATIALITE_DLL).manifest mt -manifest \
 		$(SPATIALITE_DLL).manifest -outputresource:$(SPATIALITE_DLL);2
