@@ -60,7 +60,7 @@ the terms of any one of the MPL, the GPL or the LGPL.
 #include <spatialite/gaiageo.h>
 
 #if defined(_WIN32) && !defined(__MINGW32__)
-static double
+double
 rint (double x)
 {
     return floor (x + 0.5);
