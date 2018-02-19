@@ -97,6 +97,8 @@ clean:
 	del src\srsinit\*.obj
 	del src\versioninfo\*.obj
 	del src\virtualtext\*.obj
+	del src\shapefiles\*.obj
+	del src\connection_cache\*.obj
 	del src\wfs\*.obj
 	del src\dxf\*.obj
 	del src\md5\*.obj
