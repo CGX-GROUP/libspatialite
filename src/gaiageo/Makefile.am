@@ -1,8 +1,8 @@
 
 SUBDIRS = flex lemon
 
-AM_CPPFLAGS = @CFLAGS@ @GEOS_CFLAGS@ @LIBXML2_CFLAGS@
-AM_CPPFLAGS += -I$(top_srcdir)/src/headers
+AM_CPPFLAGS = -I$(top_srcdir)/src/headers
+AM_CPPFLAGS += @CFLAGS@ @CPPFLAGS@ @GEOS_CFLAGS@ @LIBXML2_CFLAGS@
 
 noinst_LTLIBRARIES = libgaiageo.la gaiageo.la
 
@@ -13,7 +13,7 @@ GAIAGEO_COMMON_SOURCES = gg_advanced.c \
 	gg_geoscvt.c \
 	gg_relations.c \
 	gg_relations_ext.c \
-	gg_lwgeom.c \
+	gg_rttopo.c \
 	gg_extras.c \
 	gg_shape.c \
 	gg_transform.c \
@@ -32,8 +32,8 @@ libgaiageo_la_SOURCES = $(GAIAGEO_COMMON_SOURCES)
 
 gaiageo_la_SOURCES = $(GAIAGEO_COMMON_SOURCES)
 
-gaiageo_la_CPPFLAGS = @CFLAGS@ @GEOS_CFLAGS@ @LIBXML2_CFLAGS@
-gaiageo_la_CPPFLAGS += -I$(top_srcdir)/src/headers -I.
+gaiageo_la_CPPFLAGS = -I$(top_srcdir)/src/headers -I.
+gaiageo_la_CPPFLAGS += @CFLAGS@ @CPPFLAGS@ @GEOS_CFLAGS@ @LIBXML2_CFLAGS@
 gaiageo_la_CPPFLAGS += -DLOADABLE_EXTENSION
 gaiageo_la_LDFLAGS = -module
 gaiageo_la_LIBTOOLFLAGS = --tag=disable-static

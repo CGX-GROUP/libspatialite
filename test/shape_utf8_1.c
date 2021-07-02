@@ -47,7 +47,7 @@ the terms of any one of the MPL, the GPL or the LGPL.
 #include <stdio.h>
 #include <string.h>
 
-#include "config.h"
+#include <spatialite/gaiaconfig.h>
 
 #include "sqlite3.h"
 #include "spatialite.h"
@@ -359,6 +359,9 @@ do_test (sqlite3 * handle, int legacy)
 		return -27;
 	    }
       }
+#else
+    if (handle != NULL && legacy == 0)
+	handle = NULL;		/* silencing stupid compiler warnings */
 #endif /* end ICONV conditional */
 
 /* ok, succesfull termination */
@@ -375,9 +378,6 @@ main (int argc, char *argv[])
     char *err_msg = NULL;
     void *cache = spatialite_alloc_connection ();
 
-    if (argc > 1 || argv[0] == NULL)
-	argc = 1;		/* silencing stupid compiler warnings */
-
 /* testing current style metadata layout >= v.4.0.0 */
     ret =
 	sqlite3_open_v2 (":memory:", &handle,
@@ -393,11 +393,11 @@ main (int argc, char *argv[])
     spatialite_init_ex (handle, cache, 0);
 
     ret =
-	sqlite3_exec (handle, "SELECT InitSpatialMetadata(1)", NULL, NULL,
+	sqlite3_exec (handle, "SELECT InitSpatialMetadataFull(1)", NULL, NULL,
 		      &err_msg);
     if (ret != SQLITE_OK)
       {
-	  fprintf (stderr, "InitSpatialMetadata() error: %s\n", err_msg);
+	  fprintf (stderr, "InitSpatialMetadataFull() error: %s\n", err_msg);
 	  sqlite3_free (err_msg);
 	  sqlite3_close (handle);
 	  return -2;
@@ -466,6 +466,9 @@ main (int argc, char *argv[])
       }
 
 #endif /* end ICONV conditional */
+
+    if (argc > 1 || argv[0] == NULL)
+	argc = 1;		/* silencing stupid compiler warnings */
 
     spatialite_shutdown ();
     return 0;

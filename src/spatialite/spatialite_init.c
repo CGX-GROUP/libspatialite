@@ -2,7 +2,7 @@
 
  spatialite_init.c -- SQLite3 spatial extension
 
- version 4.3, 2015 June 29
+ version 5.0, 2020 August 1
 
  Author: Sandro Furieri a.furieri@lqt.it
 
@@ -24,7 +24,7 @@ The Original Code is the SpatiaLite library
 
 The Initial Developer of the Original Code is Alessandro Furieri
  
-Portions created by the Initial Developer are Copyright (C) 2008-2015
+Portions created by the Initial Developer are Copyright (C) 2008-2021
 the Initial Developer. All Rights Reserved.
 
 Contributor(s):
@@ -67,11 +67,16 @@ Regione Toscana - Settore Sistema Informativo Territoriale ed Ambientale
 
 #include <spatialite/sqlite.h>
 
-#include <spatialite/spatialite.h>
+#include <spatialite/spatialite_ext.h>
 #include <spatialite.h>
 #include <spatialite_private.h>
 
 #ifndef OMIT_GEOS		/* including GEOS */
+#ifdef GEOS_REENTRANT
+#ifdef GEOS_ONLY_REENTRANT
+#define GEOS_USE_ONLY_R_API	/* only fully thread-safe GEOS API */
+#endif
+#endif
 #include <geos_c.h>
 #endif
 
@@ -109,12 +114,10 @@ spatialite_init (int verbose)
     spatialite_initialize ();
 
 #ifndef OMIT_GEOS		/* initializing GEOS */
+#ifndef GEOS_USE_ONLY_R_API	/* obsolete versions non fully thread-safe */
     initGEOS (geos_warning, geos_error);
+#endif
 #endif /* end GEOS  */
-
-#ifdef POSTGIS_2_1		/* initializing liblwgeom from PostGIS 2.1.x (or later) */
-    splite_lwgeom_init ();
-#endif /* end POSTGIS_2_1 */
 
     sqlite3_auto_extension ((void (*)(void)) init_spatialite_extension);
     spatialite_splash_screen (verbose);
@@ -129,7 +132,9 @@ spatialite_cleanup ()
 */
 
 #ifndef OMIT_GEOS
+#ifndef GEOS_USE_ONLY_R_API	/* obsolete versions non fully thread-safe */
     finishGEOS ();
+#endif
 #endif
 
 #ifdef ENABLE_LWGEOM

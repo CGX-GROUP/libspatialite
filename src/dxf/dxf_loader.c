@@ -3,7 +3,7 @@
  dxf_loader.c -- implements DXF support 
  [loding features into the DB - common methods]
 
- version 4.3, 2015 June 29
+ version 5.0, 2020 August 1
 
  Author: Sandro Furieri a.furieri@lqt.it
 
@@ -25,7 +25,7 @@ The Original Code is the SpatiaLite library
 
 The Initial Developer of the Original Code is Alessandro Furieri
  
-Portions created by the Initial Developer are Copyright (C) 2008-2015
+Portions created by the Initial Developer are Copyright (C) 2008-2021
 the Initial Developer. All Rights Reserved.
 
 Contributor(s): 
@@ -3251,7 +3251,7 @@ import_blocks (sqlite3 * handle, gaiaDxfParserPtr dxf, int append)
     int blob_size;
     gaiaGeomCollPtr geom;
     int error = 0;
-    char *name;
+    char *name = "??";
     sqlite3_stmt *stmt;
     sqlite3_stmt *stmt_text_2d = NULL;
     sqlite3_stmt *stmt_text_3d = NULL;

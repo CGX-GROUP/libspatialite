@@ -2,7 +2,7 @@
 
  validator.c -- implements geometry validation and repair
 
- version 4.3, 2015 June 29
+ version 5.0, 2020 August 1
 
  Author: Sandro Furieri a.furieri@lqt.it
 
@@ -24,7 +24,7 @@ The Original Code is the SpatiaLite library
 
 The Initial Developer of the Original Code is Alessandro Furieri
  
-Portions created by the Initial Developer are Copyright (C) 2008-2015
+Portions created by the Initial Developer are Copyright (C) 2008-2021
 the Initial Developer. All Rights Reserved.
 
 Alternatively, the contents of this file may be used under the terms of
@@ -294,7 +294,7 @@ check_table_column (sqlite3 * sqlite, const char *table, const char *geom,
     return ok;
 }
 
-#ifdef ENABLE_LWGEOM		/* only if LWGEOM is supported */
+#ifdef ENABLE_RTTOPO		/* only if RTTOPO is supported */
 
 static struct sanitize_report *
 alloc_sanitize_report (void)
@@ -1675,7 +1675,7 @@ sanitize_geometry_column_common (const void *p_cache, sqlite3 * sqlite,
 				 int *n_discarded, int *n_failures,
 				 char **err_msg)
 {
-#ifdef ENABLE_LWGEOM		/* only if LWGEOM is enabled */
+#ifdef ENABLE_RTTOPO		/* only if RTTOPO is enabled */
 
 /* attempts to repair invalid Geometries from a Geometry Column */
     char *sql;
@@ -1957,7 +1957,11 @@ sanitize_geometry_column_common (const void *p_cache, sqlite3 * sqlite,
       }
 
 /* opening the HTML report */
+#ifdef _WIN32
+    out = gaia_win_fopen (report_path, "wb");
+#else
     out = fopen (report_path, "wb");
+#endif
     if (out == NULL)
 	goto stop;
 
@@ -2005,11 +2009,11 @@ sanitize_geometry_column_common (const void *p_cache, sqlite3 * sqlite,
 			    gaiaGeomCollPtr repaired;
 			    gaiaGeomCollPtr discarded;
 			    report->n_invalids += 1;
-			    gaiaResetLwGeomMsg ();
-			    repaired = gaiaMakeValid (geom);
-			    discarded = gaiaMakeValidDiscarded (geom);
-			    error = gaiaGetLwGeomErrorMsg ();
-			    warning = gaiaGetLwGeomWarningMsg ();
+			    gaiaResetRtTopoMsg (p_cache);
+			    repaired = gaiaMakeValid (p_cache, geom);
+			    discarded = gaiaMakeValidDiscarded (p_cache, geom);
+			    error = gaiaGetRtTopoErrorMsg (p_cache);
+			    warning = gaiaGetRtTopoWarningMsg (p_cache);
 			    if (discarded == NULL)
 				p_summary = NULL;
 			    else
@@ -2288,7 +2292,7 @@ sanitize_geometry_column_common (const void *p_cache, sqlite3 * sqlite,
     if (report->n_not_repaired > 0)
       {
 	  fprintf (out,
-		   "\t\t\t<tr><td colspan=\"2\" class=\"err\">This layer contains severly damaged Geometries (beyond any possible repair);<br>");
+		   "\t\t\t<tr><td colspan=\"2\" class=\"err\">This layer contains severely damaged Geometries (beyond any possible repair);<br>");
 	  fprintf (out,
 		   "please manually check the <b>%s</b> table.</td></tr>\n",
 		   tmp_table);
@@ -2409,9 +2413,9 @@ sanitize_geometry_column_common (const void *p_cache, sqlite3 * sqlite,
     free_sanitize_report (report);
     if (out)
 	fclose (out);
-	
-#endif /* end LWGEOM conditional */
-    
+
+#endif /* end RTTOPO conditional */
+
     return 0;
 }
 
@@ -2478,7 +2482,11 @@ sanitize_all_geometry_columns_common (const void *p_cache, sqlite3 * sqlite,
 
 /* opening the HTML report */
     report = sqlite3_mprintf ("%s/index.html", output_dir);
+#ifdef _WIN32
+    out = gaia_win_fopen (report, "wb");
+#else
     out = fopen (report, "wb");
+#endif
     sqlite3_free (report);
     if (out == NULL)
 	goto stop;
@@ -2716,9 +2724,9 @@ sanitize_all_geometry_columns (sqlite3 * sqlite,
 			       const char *output_dir, int *x_not_repaired,
 			       char **err_msg)
 {
-/* LWGEOM isn't enabled: always returning an error */
+/* RTTOPO isn't enabled: always returning an error */
     int len;
-    const char *msg = "Sorry ... libspatialite was built disabling LWGEOM\n"
+    const char *msg = "Sorry ... libspatialite was built disabling RTTOPO\n"
 	"and is thus unable to support MakeValid";
 
 /* silencing stupid compiler warnings */
@@ -2740,9 +2748,9 @@ sanitize_all_geometry_columns_r (const void *p_cache, sqlite3 * sqlite,
 				 const char *output_dir, int *x_not_repaired,
 				 char **err_msg)
 {
-/* LWGEOM isn't enabled: always returning an error */
+/* RTTOPO isn't enabled: always returning an error */
     int len;
-    const char *msg = "Sorry ... libspatialite was built disabling LWGEOM\n"
+    const char *msg = "Sorry ... libspatialite was built disabling RTTOPO\n"
 	"and is thus unable to support MakeValid";
 
 /* silencing stupid compiler warnings */
@@ -2764,9 +2772,9 @@ sanitize_geometry_column (sqlite3 * sqlite, const char *table, const char *geom,
 			  int *n_invalids, int *n_repaired, int *n_discarded,
 			  int *n_failures, char **err_msg)
 {
-/* LWGEOM isn't enabled: always returning an error */
+/* RTTOPO isn't enabled: always returning an error */
     int len;
-    const char *msg = "Sorry ... libspatialite was built disabling LWGEOM\n"
+    const char *msg = "Sorry ... libspatialite was built disabling RTTOPO\n"
 	"and is thus unable to support MakeValid";
 
 /* silencing stupid compiler warnings */
@@ -2791,9 +2799,9 @@ sanitize_geometry_column_r (const void *p_cache, sqlite3 * sqlite,
 			    int *n_invalids, int *n_repaired, int *n_discarded,
 			    int *n_failures, char **err_msg)
 {
-/* LWGEOM isn't enabled: always returning an error */
+/* RTTOPO isn't enabled: always returning an error */
     int len;
-    const char *msg = "Sorry ... libspatialite was built disabling LWGEOM\n"
+    const char *msg = "Sorry ... libspatialite was built disabling RTTOPO\n"
 	"and is thus unable to support MakeValid";
 
 /* silencing stupid compiler warnings */
@@ -2811,7 +2819,7 @@ sanitize_geometry_column_r (const void *p_cache, sqlite3 * sqlite,
     return 0;
 }
 
-#endif /* end LWGEOM conditionals */
+#endif /* end RTTOPO conditionals */
 
 
 #ifndef OMIT_GEOS		/* only if GEOS is supported */
@@ -2916,8 +2924,8 @@ check_geometry_column_common (const void *p_cache, sqlite3 * sqlite,
     char num[256];
     time_t v_time;
     struct tm *v_tm;
-    const char *day;
-    const char *month;
+    const char *day = "";
+    const char *month = "";
     FILE *out = NULL;
     const char *p_msg;
     int len;
@@ -3107,7 +3115,11 @@ check_geometry_column_common (const void *p_cache, sqlite3 * sqlite,
       }
 
 /* opening the HTML report */
+#ifdef _WIN32
+    out = gaia_win_fopen (report_path, "wb");
+#else
     out = fopen (report_path, "wb");
+#endif
     if (out == NULL)
 	goto stop;
 
@@ -3455,8 +3467,8 @@ check_all_geometry_columns_common (const void *p_cache, sqlite3 * sqlite,
     FILE *out = NULL;
     time_t v_time;
     struct tm *v_tm;
-    const char *day;
-    const char *month;
+    const char *day = "";
+    const char *month = "";
     int sum_invalids = 0;
 
 /* attempting to create the output directory */
@@ -3471,7 +3483,11 @@ check_all_geometry_columns_common (const void *p_cache, sqlite3 * sqlite,
 
 /* opening the HTML report */
     report = sqlite3_mprintf ("%s/index.html", output_dir);
+#ifdef _WIN32
+    out = gaia_win_fopen (report, "wb");
+#else
     out = fopen (report, "wb");
+#endif
     sqlite3_free (report);
     if (out == NULL)
 	goto stop;
@@ -3661,7 +3677,7 @@ check_all_geometry_columns (sqlite3 * sqlite,
 {
 /* GEOS isn't enabled: always returning an error */
     int len;
-    const char *msg = "Sorry ... libspatialite was built disabling LWGEOM\n"
+    const char *msg = "Sorry ... libspatialite was built disabling RTTOPOM\n"
 	"and is thus unable to support IsValid";
 /* silencing stupid compiler warnings */
     if (sqlite == NULL || output_dir == NULL || x_invalids == NULL)
@@ -3682,7 +3698,7 @@ check_all_geometry_columns_r (const void *p_cache, sqlite3 * sqlite,
 {
 /* GEOS isn't enabled: always returning an error */
     int len;
-    const char *msg = "Sorry ... libspatialite was built disabling LWGEOM\n"
+    const char *msg = "Sorry ... libspatialite was built disabling RTTOPO\n"
 	"and is thus unable to support IsValid";
 /* silencing stupid compiler warnings */
     if (p_cache == NULL || sqlite == NULL || output_dir == NULL

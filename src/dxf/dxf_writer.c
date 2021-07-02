@@ -3,7 +3,7 @@
  dxf_writer.c -- implements DXF support
  [exporting a DXF]
 
- version 4.3, 2015 June 29
+ version 5.0, 2020 August 1
 
  Author: Sandro Furieri a.furieri@lqt.it
 
@@ -25,7 +25,7 @@ The Original Code is the SpatiaLite library
 
 The Initial Developer of the Original Code is Alessandro Furieri
  
-Portions created by the Initial Developer are Copyright (C) 2008-2015
+Portions created by the Initial Developer are Copyright (C) 2008-2021
 the Initial Developer. All Rights Reserved.
 
 Contributor(s): 
@@ -273,6 +273,8 @@ gaiaDxfWriteLine (gaiaDxfWriterPtr dxf, const char *layer,
     for (iv = 0; iv < line->Points; iv++)
       {
 	  /* exporting all vertices */
+	  m = 0.0;
+	  z = 0.0;
 	  if (line->DimensionModel == GAIA_XY_Z)
 	    {
 		gaiaGetPointXYZ (line->Coords, iv, &x, &y, &z);
@@ -327,6 +329,8 @@ gaiaDxfWriteRing (gaiaDxfWriterPtr dxf, const char *layer, gaiaRingPtr ring)
 	     Ring closure is always implicitly assumed, so 
 	     there is no need at all to explicitly export
 	     a last vertex identical to the first one */
+	  m = 0.0;
+	  z = 0.0;
 	  if (ring->DimensionModel == GAIA_XY_Z)
 	    {
 		gaiaGetPointXYZ (ring->Coords, iv, &x, &y, &z);

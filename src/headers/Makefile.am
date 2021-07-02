@@ -1,6 +1,14 @@
 
+if MODULE_ONLY
+noinst_HEADERS = 
+nobase_include_HEADERS = 
+else
 noinst_HEADERS = spatialite_private.h
 nobase_include_HEADERS = spatialite.h \
+	spatialite/gaiaconfig.h \
+	spatialite/gaiaconfig.h.in \
+	spatialite/gaiaconfig-msvc.h \
+	spatialite/gaiaconfig-msvc.h.in \
 	spatialite/gaiaexif.h \
 	spatialite/gaiaaux.h \
 	spatialite/gaiamatrix.h \
@@ -15,8 +23,14 @@ nobase_include_HEADERS = spatialite.h \
 	spatialite/gg_xml.h \
 	spatialite/gg_wfs.h \
 	spatialite/gg_dxf.h \
-	spatialite/spatialite.h \
+	spatialite/spatialite_ext.h \
 	spatialite/sqlite.h \
 	spatialite/debug.h \
 	spatialite/geopackage.h \
-	spatialite/control_points.h
+	spatialite/control_points.h \
+	spatialite/gaia_topology.h \
+	spatialite/gaia_network.h \
+	spatialite/gg_sequence.h \
+	spatialite/stored_procedures.h \
+	spatialite/geojson.h
+endif

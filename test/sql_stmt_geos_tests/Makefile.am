@@ -81,7 +81,6 @@ EXTRA_DIST = bdmpolyfromtext10.testcase \
 	buffer4.testcase \
 	buffer5.testcase \
 	buffer6.testcase \
-	buffer7.testcase \
 	buffer8.testcase \
 	buffer9.testcase \
 	buildarea1.testcase \
@@ -98,6 +97,15 @@ EXTRA_DIST = bdmpolyfromtext10.testcase \
 	centroid6.testcase \
 	centroid7.testcase \
 	centroid8.testcase \
+	circularity1.testcase \
+	circularity2.testcase \
+	circularity3.testcase \
+	circularity4.testcase \
+	circularity5.testcase \
+	circularity6.testcase \
+	circularity7.testcase \
+	circularity8.testcase \
+	circularity9.testcase \
 	convexhull10.testcase \
 	convexhull1.testcase \
 	convexhull2.testcase \
@@ -108,6 +116,22 @@ EXTRA_DIST = bdmpolyfromtext10.testcase \
 	convexhull7.testcase \
 	convexhull8.testcase \
 	convexhull9.testcase \
+	acuttermessage.testcase \
+	cutter1.testcase \
+	cutter2.testcase \
+	cutter3.testcase \
+	cutter4.testcase \
+	cutter5.testcase \
+	cutter6.testcase \
+	cutter7.testcase \
+	cutter8.testcase \
+	cutter9.testcase \
+	cutter10.testcase \
+	cutter11.testcase \
+	cutter12.testcase \
+	cutter13.testcase \
+	cutter14.testcase \
+	cutter15.testcase \
 	difference10.testcase \
 	difference11.testcase \
 	difference12.testcase \
@@ -129,6 +153,56 @@ EXTRA_DIST = bdmpolyfromtext10.testcase \
 	distance7.testcase \
 	distance8.testcase \
 	distance9.testcase \
+	drapeline1.testcase \
+	drapeline2.testcase \
+	drapeline3.testcase \
+	drapeline4.testcase \
+	drapeline5.testcase \
+	drapeline6.testcase \
+	drapeline7.testcase \
+	drapeline8.testcase \
+	drapeline9.testcase \
+	drapeline10.testcase \
+	drapeline11.testcase \
+	drapeline12.testcase \
+	drapeline13.testcase \
+	drapeline14.testcase \
+	drapeline15.testcase \
+	drapeline16.testcase \
+	drapeline17.testcase \
+	drapeline18.testcase \
+	drapeline19.testcase \
+	drapeline20.testcase \
+	drapeline21.testcase \
+	drapeline22.testcase \
+	drapelineex1.testcase \
+	drapelineex2.testcase \
+	drapelineex3.testcase \
+	drapelineex4.testcase \
+	drapelineex5.testcase \
+	drapelineex6.testcase \
+	drapelineex7.testcase \
+	drapelineex8.testcase \
+	drapelineex9.testcase \
+	drapelineex10.testcase \
+	drapelineex11.testcase \
+	drapelineex12.testcase \
+	drapelineex13.testcase \
+	drapelineex14.testcase \
+	drapelineex15.testcase \
+	drapelineex16.testcase \
+	drapelineex17.testcase \
+	drapelineex18.testcase \
+	drapelineex19.testcase \
+	drapelineex20.testcase \
+	drapelineex21.testcase \
+	drapelineex22.testcase \
+	drapelineex23.testcase \
+	drapelineex24.testcase \
+	drapelineex25.testcase \
+	drapelineex26.testcase \
+	drapelineex27.testcase \
+	drapelineex28.testcase \
 	intersection10.testcase \
 	intersection11.testcase \
 	intersection12.testcase \
@@ -138,8 +212,6 @@ EXTRA_DIST = bdmpolyfromtext10.testcase \
 	intersection4.testcase \
 	intersection5.testcase \
 	intersection6.testcase \
-	intersection7.testcase \
-	intersection8.testcase \
 	intersection9.testcase \
 	isclosed10.testcase \
 	isclosed1.testcase \
@@ -161,11 +233,9 @@ EXTRA_DIST = bdmpolyfromtext10.testcase \
 	isring8.testcase \
 	isring9.testcase \
 	issimple1.testcase \
-	issimple2.testcase \
 	issimple3.testcase \
 	issimple4.testcase \
 	issimple5.testcase \
-	issimple6.testcase \
 	isvalid10.testcase \
 	isvalid11.testcase \
 	isvalid12.testcase \
@@ -197,7 +267,6 @@ EXTRA_DIST = bdmpolyfromtext10.testcase \
 	isvalidreason4.testcase \
 	isvalidreason5.testcase \
 	pointonsurface1.testcase \
-	pointonsurface2.testcase \
 	pointonsurface3.testcase \
 	pointonsurface4.testcase \
 	pointonsurface5.testcase \
@@ -260,6 +329,31 @@ EXTRA_DIST = bdmpolyfromtext10.testcase \
 	relate7.testcase \
 	relate8.testcase \
 	relate9.testcase \
+	relate10.testcase \
+	relate11.testcase \
+	relate12.testcase \
+	relate13.testcase \
+	relate14.testcase \
+	relate15.testcase \
+	relate16.testcase \
+	relate17.testcase \
+	relate18.testcase \
+	relate19.testcase \
+	relate20.testcase \
+	relate21.testcase \
+	relate22.testcase \
+	relate23.testcase \
+	relate24.testcase \
+	relatematch1.testcase \
+	relatematch2.testcase \
+	relatematch3.testcase \
+	relatematch4.testcase \
+	relatematch5.testcase \
+	relatematch6.testcase \
+	relatematch7.testcase \
+	relatematch8.testcase \
+	relatematch9.testcase \
+	relatematch10.testcase \
 	relations1.testcase \
 	relations2.testcase \
 	relations3.testcase \
@@ -343,16 +437,10 @@ EXTRA_DIST = bdmpolyfromtext10.testcase \
 	symdifference9.testcase \
 	union10.testcase \
 	union11.testcase \
-	union12.testcase \
-	union13.testcase \
 	union14.testcase \
 	union15.testcase \
 	union16.testcase \
-	union17.testcase \
-	union18.testcase \
-	union19.testcase \
 	union1.testcase \
-	union20.testcase \
 	union21.testcase \
 	union22.testcase \
 	union23.testcase \
@@ -404,7 +492,6 @@ EXTRA_DIST = bdmpolyfromtext10.testcase \
 	geoserror5.testcase \
 	geoserror6.testcase \
 	geoserror7.testcase \
-	geoserror7.testcase \
 	testgeos1.testcase \
 	testgeos2.testcase \
 	testgeos3.testcase \
@@ -448,24 +535,6 @@ EXTRA_DIST = bdmpolyfromtext10.testcase \
 	covers_covered5.testcase \
 	covers_covered6.testcase \
 	covers_covered7.testcase \
-	createtopo10.testcase \
-	createtopo11.testcase \
-	createtopo12.testcase \
-	createtopo13.testcase \
-	createtopo14.testcase \
-	createtopo15.testcase \
-	createtopo16.testcase \
-	createtopo17.testcase \
-	createtopo18.testcase \
-	createtopo1.testcase \
-	createtopo2.testcase \
-	createtopo3.testcase \
-	createtopo4.testcase \
-	createtopo5.testcase \
-	createtopo6.testcase \
-	createtopo7.testcase \
-	createtopo8.testcase \
-	createtopo9.testcase \
 	distance_geogr10.testcase \
 	distance_geogr11.testcase \
 	distance_geogr12.testcase \
@@ -500,6 +569,8 @@ EXTRA_DIST = bdmpolyfromtext10.testcase \
 	hexgrid21.testcase \
 	hexgrid22.testcase \
 	hexgrid23.testcase \
+	hexgrid24.testcase \
+	hexgrid25.testcase \
 	hexgrid2.testcase \
 	hexgrid3.testcase \
 	hexgrid4.testcase \
@@ -603,6 +674,24 @@ EXTRA_DIST = bdmpolyfromtext10.testcase \
 	locatepoint7.testcase \
 	locatepoint8.testcase \
 	locatepoint9.testcase \
+	m_interpolatepoint10.testcase \
+	m_interpolatepoint11.testcase \
+	m_interpolatepoint12.testcase \
+	m_interpolatepoint13.testcase \
+	m_interpolatepoint14.testcase \
+	m_interpolatepoint15.testcase \
+	m_interpolatepoint16.testcase \
+	m_interpolatepoint17.testcase \
+	m_interpolatepoint18.testcase \
+	m_interpolatepoint1.testcase \
+	m_interpolatepoint2.testcase \
+	m_interpolatepoint3.testcase \
+	m_interpolatepoint4.testcase \
+	m_interpolatepoint5.testcase \
+	m_interpolatepoint6.testcase \
+	m_interpolatepoint7.testcase \
+	m_interpolatepoint8.testcase \
+	m_interpolatepoint9.testcase \
 	offsetcurve10.testcase \
 	offsetcurve11.testcase \
 	offsetcurve12.testcase \
@@ -703,6 +792,8 @@ EXTRA_DIST = bdmpolyfromtext10.testcase \
 	squaregrid21.testcase \
 	squaregrid22.testcase \
 	squaregrid23.testcase \
+	squaregrid24.testcase \
+	squaregrid25.testcase \
 	squaregrid2.testcase \
 	squaregrid3.testcase \
 	squaregrid4.testcase \
@@ -726,6 +817,8 @@ EXTRA_DIST = bdmpolyfromtext10.testcase \
 	trianggrid21.testcase \
 	trianggrid22.testcase \
 	trianggrid23.testcase \
+	trianggrid24.testcase \
+	trianggrid25.testcase \
 	trianggrid2.testcase \
 	trianggrid3.testcase \
 	trianggrid4.testcase \

@@ -45,7 +45,7 @@ the terms of any one of the MPL, the GPL or the LGPL.
 #include <stdio.h>
 #include <string.h>
 
-#include "config.h"
+#include <spatialite/gaiaconfig.h>
 
 #include "sqlite3.h"
 #include "spatialite.h"
@@ -161,7 +161,8 @@ test_srid (sqlite3 * sqlite, int extended)
 			      }
 			    value =
 				(const char *) sqlite3_column_text (stmt, 9);
-			    if (strcasecmp (value, "Latitude") != 0)
+			    if (strcasecmp (value, "Geodetic latitude") != 0
+				&& strcasecmp (value, "Latitude") != 0)
 			      {
 				  fprintf (stderr,
 					   "4326: Unexpected GetAxis_1_Name result (%s)\n",
@@ -179,7 +180,8 @@ test_srid (sqlite3 * sqlite, int extended)
 			      }
 			    value =
 				(const char *) sqlite3_column_text (stmt, 11);
-			    if (strcasecmp (value, "Longitude") != 0)
+			    if (strcasecmp (value, "Geodetic longitude") != 0
+				&& strcasecmp (value, "Longitude") != 0)
 			      {
 				  fprintf (stderr,
 					   "4326: Unexpected GetAxis_2_Name result (%s)\n",
@@ -352,11 +354,11 @@ main (int argc, char *argv[])
     spatialite_init_ex (db_handle, cache, 0);
 
     ret =
-	sqlite3_exec (db_handle, "SELECT InitSpatialMetadata(1)", NULL, NULL,
+	sqlite3_exec (db_handle, "SELECT InitSpatialMetadataFull(1)", NULL, NULL,
 		      &err_msg);
     if (ret != SQLITE_OK)
       {
-	  fprintf (stderr, "InitSpatialMetadata() error: %s\n", err_msg);
+	  fprintf (stderr, "InitSpatialMetadataFull() error: %s\n", err_msg);
 	  sqlite3_free (err_msg);
 	  sqlite3_close (db_handle);
 	  return -2;

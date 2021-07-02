@@ -47,7 +47,7 @@ the terms of any one of the MPL, the GPL or the LGPL.
 #include <stdio.h>
 #include <string.h>
 
-#include "config.h"
+#include <spatialite/gaiaconfig.h>
 
 #include "sqlite3.h"
 #include "spatialite.h"
@@ -241,7 +241,7 @@ do_test (sqlite3 * handle)
 
     ret =
 	sqlite3_exec (handle,
-		      "INSERT INTO Point_Test (Name, Description, geomXYZM) VALUES ('Point 4', 'Some pointXYZM', GeomFromText('POINT(136 -33 424 233.2)', 4326))",
+		      "INSERT INTO Point_Test (Name, Description, geomXYZM) VALUES ('Point 4', 'Some pointXYZM', GeomFromText('POINTZM(136 -33 424 233.2)', 4326))",
 		      NULL, NULL, &err_msg);
     if (ret != SQLITE_OK)
       {
@@ -863,24 +863,53 @@ do_test (sqlite3 * handle)
 	  sqlite3_close (handle);
 	  return -66;
       }
+#else
+    if (handle != NULL)
+	handle = NULL;		/* silencing stupid compiler warnings */
 #endif /* end ICONV conditional */
 
 /* ok, succesfull termination */
     return 0;
 }
 
-int
-main (int argc, char *argv[])
-{
+
 #ifndef OMIT_ICONV		/* only if ICONV is supported */
-#ifdef ENABLE_LWGEOM		/* only if LWGEOM is supported */
+#ifdef ENABLE_RTTOPO		/* only if RTTOPO is supported */
+static int
+do_check_tiny_point_enabled (sqlite3 * handle, int tiny_point)
+{
+/* testing IsTinyPointEnabed */
+    int i;
+    char **results;
+    int rows;
+    int columns;
+    int value = -1;
+    int ret =
+	sqlite3_get_table (handle, "SELECT IsTinyPointEnabled()", &results,
+			   &rows, &columns, NULL);
+    if (ret != SQLITE_OK)
+	return -1;
+    if (rows < 1)
+	;
+    else
+      {
+	  for (i = 1; i <= rows; i++)
+	    {
+		value = atoi (results[(i * columns) + 0]);
+	    }
+      }
+    sqlite3_free_table (results);
+    if (value == tiny_point)
+	return 0;
+    return -1;
+}
+static int
+do_test_400 (int tiny_point)
+{
     int ret;
     sqlite3 *handle;
     char *err_msg = NULL;
     void *cache = spatialite_alloc_connection ();
-
-    if (argc > 1 || argv[0] == NULL)
-	argc = 1;		/* silencing stupid compiler warnings */
 
 /* testing current style metadata layout >= v.4.0.0 */
     ret =
@@ -897,14 +926,40 @@ main (int argc, char *argv[])
     spatialite_init_ex (handle, cache, 0);
 
     ret =
-	sqlite3_exec (handle, "SELECT InitSpatialMetadata(1)", NULL, NULL,
+	sqlite3_exec (handle, "SELECT InitSpatialMetadataFull(1)", NULL, NULL,
 		      &err_msg);
     if (ret != SQLITE_OK)
       {
-	  fprintf (stderr, "InitSpatialMetadata() error: %s\n", err_msg);
+	  fprintf (stderr, "InitSpatialMetadataFull() error: %s\n", err_msg);
 	  sqlite3_free (err_msg);
 	  sqlite3_close (handle);
 	  return -2;
+      }
+
+/* enabling/disabling TinyPoint */
+    if (tiny_point)
+	ret =
+	    sqlite3_exec (handle, "SELECT EnableTinyPoint()", NULL, NULL,
+			  &err_msg);
+    else
+	ret =
+	    sqlite3_exec (handle, "SELECT DisableTinyPoint()", NULL, NULL,
+			  &err_msg);
+    if (ret != SQLITE_OK)
+      {
+	  if (tiny_point)
+	      fprintf (stderr, "EnableTinyPoint() error: %s\n", err_msg);
+	  else
+	      fprintf (stderr, "DisableTinyPoint() error: %s\n", err_msg);
+	  sqlite3_free (err_msg);
+	  sqlite3_close (handle);
+	  return -3;
+      }
+
+    if (do_check_tiny_point_enabled (handle, tiny_point) != 0)
+      {
+	  fprintf (stderr, "IsTinyBlobEnabled() error\n");
+	  return -4;
       }
 
     ret = do_test (handle);
@@ -917,6 +972,26 @@ main (int argc, char *argv[])
 
     spatialite_cleanup_ex (cache);
     sqlite3_close (handle);
+
+    return 0;
+}
+#endif /* end RTTOPO conditionals */
+#endif /* end ICONV conditional */
+
+int
+main (int argc, char *argv[])
+{
+#ifndef OMIT_ICONV		/* only if ICONV is supported */
+#ifdef ENABLE_RTTOPO		/* only if RTTOPO is supported */
+    int ret;
+    sqlite3 *handle;
+    void *cache = NULL;
+
+/* testing current style metadata layout >= v.4.0.0 */
+    if (do_test_400 (0) != 0)
+	return -1;
+    if (do_test_400 (1) != 0)
+	return -2;
 
 /* testing legacy style metadata layout <= v.3.1.0 */
     cache = spatialite_alloc_connection ();
@@ -1089,8 +1164,11 @@ main (int argc, char *argv[])
 	  return -1;
       }
 
-#endif /* end LWGEOM conditionals */
+#endif /* end RTTOPO conditionals */
 #endif /* end ICONV conditional */
+
+    if (argc > 1 || argv[0] == NULL)
+	argc = 1;		/* silencing stupid compiler warnings */
 
     spatialite_shutdown ();
     return 0;

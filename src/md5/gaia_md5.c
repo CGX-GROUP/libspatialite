@@ -4,7 +4,7 @@
                implementation from Alexander Peslyak 
                (released on the Public Domain)
 
- version 4.3, 2015 June 29
+ version 5.0, 2020 August 1
 
  Author: Sandro Furieri a.furieri@lqt.it
 
@@ -26,7 +26,7 @@ The Original Code is the SpatiaLite library
 
 The Initial Developer of the Original Code is Alessandro Furieri
  
-Portions created by the Initial Developer are Copyright (C) 2008-2015
+Portions created by the Initial Developer are Copyright (C) 2008-2021
 the Initial Developer. All Rights Reserved.
 
 Contributor(s): 
@@ -88,7 +88,7 @@ gaiaUpdateMD5Checksum (void *p_md5, const unsigned char *blob, int blob_len)
     MD5_CTX *md5 = (MD5_CTX *) p_md5;
     if (md5 == NULL || blob == NULL)
 	return;
-    splite_MD5_Update (md5, (void *)blob, blob_len);
+    splite_MD5_Update (md5, (void *) blob, blob_len);
 }
 
 GAIAAUX_DECLARE char *

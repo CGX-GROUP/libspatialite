@@ -2,7 +2,7 @@
 
  dxf_parser.c -- implements DXF support [parsing]
 
- version 4.3, 2015 June 29
+ version 5.0, 2020 August 1
 
  Author: Sandro Furieri a.furieri@lqt.it
 
@@ -24,7 +24,7 @@ The Original Code is the SpatiaLite library
 
 The Initial Developer of the Original Code is Alessandro Furieri
  
-Portions created by the Initial Developer are Copyright (C) 2008-2015
+Portions created by the Initial Developer are Copyright (C) 2008-2021
 the Initial Developer. All Rights Reserved.
 
 Contributor(s): 
@@ -1308,7 +1308,7 @@ static void
 unlinked_rings (const void *p_cache, gaiaDxfPolylinePtr line)
 {
 /* attempt to identify unlinked Polygon rings */
-    int invalid;
+    int invalid = 0;
     int start;
     int count;
     double x;
@@ -3511,7 +3511,11 @@ gaiaParseDxfFileCommon (const void *p_cache, gaiaDxfParserPtr dxf,
 	return 0;
 
 /* attempting to open the input file */
+#ifdef _WIN32
+    fl = gaia_win_fopen (path, "rb");
+#else
     fl = fopen (path, "rb");
+#endif
     if (fl == NULL)
 	return 0;
 
@@ -3537,7 +3541,7 @@ gaiaParseDxfFileCommon (const void *p_cache, gaiaDxfParserPtr dxf,
 		p = line;
 		continue;
 	    }
-	  *p++ = c;
+	  *p++ = (char) c;
 	  /* Even Rouault 2013-06-02 - avoiding a potential buffer overflow */
 	  if (p - line == sizeof (line) - 1)
 	      goto stop;

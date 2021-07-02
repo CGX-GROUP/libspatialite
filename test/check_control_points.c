@@ -45,10 +45,12 @@ the terms of any one of the MPL, the GPL or the LGPL.
 #include <stdio.h>
 #include <string.h>
 
-#include "config.h"
+#include <spatialite/gaiaconfig.h>
 
 #include "sqlite3.h"
 #include "spatialite.h"
+
+#ifdef ENABLE_GCP		/* only if Control Points (Grass) is enabled */
 
 static int
 test_query (sqlite3 * sqlite, const char *sql, const char *expected)
@@ -286,6 +288,8 @@ test_invalid (sqlite3 * handle)
     return 1;
 }
 
+#endif
+
 int
 main (int argc, char *argv[])
 {
@@ -296,9 +300,6 @@ main (int argc, char *argv[])
     const char *sql;
     int order;
     void *cache = spatialite_alloc_connection ();
-
-    if (argc > 1 || argv[0] == NULL)
-	argc = 1;		/* silencing stupid compiler warnings */
 
     ret =
 	sqlite3_open_v2 (":memory:", &handle,
@@ -314,11 +315,11 @@ main (int argc, char *argv[])
     spatialite_init_ex (handle, cache, 0);
 
     ret =
-	sqlite3_exec (handle, "SELECT InitSpatialMetadata(1)", NULL, NULL,
+	sqlite3_exec (handle, "SELECT InitSpatialMetadataFull(1)", NULL, NULL,
 		      &err_msg);
     if (ret != SQLITE_OK)
       {
-	  fprintf (stderr, "InitSpatialMetadata() error: %s\n", err_msg);
+	  fprintf (stderr, "InitSpatialMetadataFull() error: %s\n", err_msg);
 	  sqlite3_free (err_msg);
 	  sqlite3_close (handle);
 	  return -2;
@@ -822,7 +823,7 @@ main (int argc, char *argv[])
 /* resolving Control Points 2D  - 2nd order- AsText */
     sql = "SELECT GCP_IsValid(GCP_Compute(a.geometry, b.geometry, 2)) "
 	"FROM point_a_xy AS a, point_b_xy AS b WHERE a.id = b.id";
-    if (!test_query	(handle, sql,"1"))
+    if (!test_query (handle, sql, "1"))
 	return -44;
 
 /* resolving Control Points 2D - 2nd order - GCP2ATM */
@@ -906,6 +907,9 @@ main (int argc, char *argv[])
     spatialite_cleanup_ex (cache);
 
 #endif /* end CGP conditional */
+
+    if (argc > 1 || argv[0] == NULL)
+	argc = 1;		/* silencing stupid compiler warnings */
 
     spatialite_shutdown ();
     return 0;

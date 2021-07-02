@@ -2,7 +2,7 @@
 
  virtualnetwork.c -- SQLite3 extension [VIRTUAL TABLE Routing - shortest path]
 
- version 4.3, 2015 June 29
+ version 5.0, 2020 August 1
 
  Author: Sandro Furieri a.furieri@lqt.it
 
@@ -24,7 +24,7 @@ The Original Code is the SpatiaLite library
 
 The Initial Developer of the Original Code is Alessandro Furieri
  
-Portions created by the Initial Developer are Copyright (C) 2008-2015
+Portions created by the Initial Developer are Copyright (C) 2008-2021
 the Initial Developer. All Rights Reserved.
 
 Contributor(s):
@@ -59,7 +59,7 @@ the terms of any one of the MPL, the GPL or the LGPL.
 
 #include <spatialite/sqlite.h>
 
-#include <spatialite/spatialite.h>
+#include <spatialite/spatialite_ext.h>
 #include <spatialite/gaiaaux.h>
 #include <spatialite/gaiageo.h>
 
@@ -899,6 +899,8 @@ reset_solution (SolutionPtr solution)
 	gaiaFreeGeomColl (solution->Geometry);
     solution->FirstArc = NULL;
     solution->LastArc = NULL;
+    solution->FirstNode = NULL;
+    solution->LastNode = NULL;
     solution->From = NULL;
     solution->To = NULL;
     solution->MaxCost = 0.0;
@@ -1055,7 +1057,7 @@ build_solution (sqlite3 * handle, NetworkPtr graph, SolutionPtr solution,
     int base = 0;
     int block = 128;
     int how_many;
-    sqlite3_stmt *stmt;
+    sqlite3_stmt *stmt = NULL;
     char *xfrom;
     char *xto;
     char *xgeom;
@@ -1337,6 +1339,8 @@ build_solution (sqlite3 * handle, NetworkPtr graph, SolutionPtr solution,
 		pR = pR->Next;
 	    }
 	  /* creating the Shortest Path Geometry - LINESTRING */
+	  if (tot_pts < 2)
+	      return;
 	  ln = gaiaAllocLinestring (tot_pts);
 	  solution->Geometry = gaiaAllocGeomColl ();
 	  solution->Geometry->Srid = srid;
@@ -1443,6 +1447,7 @@ find_srid (sqlite3 * handle, NetworkPtr graph)
 			   "Lower(f_table_name) = Lower(%Q) AND Lower(f_geometry_column) = Lower(%Q)",
 			   graph->TableName, graph->GeometryColumn);
     ret = sqlite3_prepare_v2 (handle, sql, strlen (sql), &stmt, NULL);
+    sqlite3_free (sql);
     if (ret != SQLITE_OK)
 	return srid;
     while (1)
@@ -2700,7 +2705,6 @@ vnet_update (sqlite3_vtab * pVTab, int argc, sqlite3_value ** argv,
 		return SQLITE_OK;
 	    }
       }
-    return SQLITE_READONLY;
 }
 
 static int

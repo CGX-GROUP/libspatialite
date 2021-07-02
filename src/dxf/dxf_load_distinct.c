@@ -3,7 +3,7 @@
  dxf_load_distinct.c -- implements DXF support
  [loding features into the DB - by distinct layers]
 
- version 4.3, 2015 June 29
+ version 5.0, 2020 August 1
 
  Author: Sandro Furieri a.furieri@lqt.it
 
@@ -25,7 +25,7 @@ The Original Code is the SpatiaLite library
 
 The Initial Developer of the Original Code is Alessandro Furieri
  
-Portions created by the Initial Developer are Copyright (C) 2008-2015
+Portions created by the Initial Developer are Copyright (C) 2008-2021
 the Initial Developer. All Rights Reserved.
 
 Contributor(s): 
@@ -736,9 +736,9 @@ import_by_layer (sqlite3 * handle, gaiaDxfParserPtr dxf, int append)
 {
 /* populating the target DB - by distinct layers */
     int ret;
-    sqlite3_stmt *stmt;
-    sqlite3_stmt *stmt_ext;
-    sqlite3_stmt *stmt_pattern;
+    sqlite3_stmt *stmt = NULL;
+    sqlite3_stmt *stmt_ext = NULL;
+    sqlite3_stmt *stmt_pattern = NULL;
     unsigned char *blob;
     int blob_size;
     gaiaGeomCollPtr geom;
@@ -747,9 +747,9 @@ import_by_layer (sqlite3 * handle, gaiaDxfParserPtr dxf, int append)
     gaiaRingPtr p_rng;
     int iv;
     char *name;
-    char *attr_name;
+    char *attr_name = "";
     char *block;
-    gaiaDxfTextPtr txt;
+    gaiaDxfTextPtr txt = NULL;
     gaiaDxfPointPtr pt;
     gaiaDxfPolylinePtr ln;
     gaiaDxfPolylinePtr pg;
