@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.61)
-AC_INIT(libspatialite, 5.0.1, a.furieri@lqt.it)
+AC_INIT(libspatialite, 5.1.0, a.furieri@lqt.it)
 AC_LANG(C)
 AC_CONFIG_MACRO_DIR([m4])
 
@@ -37,6 +37,10 @@ AH_TEMPLATE([GEOS_ONLY_REENTRANT],
             [Should be defined in order to fully disable GEOS non-thread-safe API.])
 AH_TEMPLATE([GEOS_370],
             [Should be defined in order to enable GEOS_370 support.])
+AH_TEMPLATE([GEOS_3100],
+            [Should be defined in order to enable GEOS_3100 support.])
+AH_TEMPLATE([GEOS_3110],
+            [Should be defined in order to enable GEOS_3110 support.])
 AH_TEMPLATE([PROJ_NEW],
             [Should be defined in order to enable PROJ.6 support.])
 AH_TEMPLATE([ENABLE_RTTOPO],
@@ -51,8 +55,6 @@ AH_TEMPLATE([OMIT_MATHSQL],
             [Should be defined in order to disable MATHSQL support.])
 AH_TEMPLATE([OMIT_EPSG],
             [Should be defined in order to disable EPSG full support.])
-AH_TEMPLATE([OMIT_GEOCALLBACKS],
-            [Should be defined in order to disable GEOCALLBACKS support.])
 AH_TEMPLATE([OMIT_KNN],
             [Should be defined in order to disable KNN support.])
 AH_TEMPLATE([OMIT_FREEXL],
@@ -95,14 +97,12 @@ AC_PROG_CPP
 AC_PROG_INSTALL
 AC_PROG_LN_S
 AC_PROG_MAKE_SET
-AC_LIBTOOL_WIN32_DLL
-AC_PROG_LIBTOOL
+LT_INIT(win32-dll)
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST
 AC_TYPE_OFF_T
 AC_TYPE_SIZE_T
-AC_HEADER_TIME
 AC_STRUCT_TM
 AC_C_VOLATILE
 
@@ -115,7 +115,7 @@ AC_FUNC_STRFTIME
 AC_CHECK_FUNCS([memset sqrt strcasecmp strerror strncasecmp strstr fdatasync ftruncate getcwd gettimeofday localtime_r memmove strerror])
 
 # Checks for installed libraries
-AC_CHECK_LIB(sqlite3,sqlite3_prepare_v2,,AC_MSG_ERROR(['libsqlite3' is required but it doesn't seem to be installed on this system.]),-lm)
+# AC_CHECK_LIB(sqlite3,sqlite3_prepare_v2,,AC_MSG_ERROR(['libsqlite3' is required but it doesn't seem to be installed on this system.]),-lm)
 AC_CHECK_LIB(z,inflateInit_,,AC_MSG_ERROR(['libz' is required but it doesn't seem to be installed on this system.]),-lm)
 
 AC_CONFIG_FILES([Makefile \
@@ -145,8 +145,20 @@ AC_CONFIG_FILES([Makefile \
 		test/Makefile \
 		test/sql_stmt_tests/Makefile \
 		test/sql_stmt_geos_tests/Makefile \
+		test/sql_stmt_geos370_tests/Makefile \
+		test/sql_stmt_geos3100_tests/Makefile \
+		test/sql_stmt_geos3110_tests/Makefile \
 		test/sql_stmt_geos_380/Makefile \
 		test/sql_stmt_geos_non380/Makefile \
+		test/sql_stmt_geos_390/Makefile \
+		test/sql_stmt_geos_non390/Makefile \
+		test/sql_stmt_geos_391/Makefile \
+		test/sql_stmt_geos_3100/Makefile \
+		test/sql_stmt_geos_non3100/Makefile \
+		test/sql_stmt_geos_3110/Makefile \
+		test/sql_stmt_geos_non3110/Makefile \
+		test/sql_stmt_geos_3120/Makefile \
+		test/sql_stmt_geos_non3120/Makefile \
 		test/sql_stmt_geosadvanced_tests/Makefile \
 		test/sql_stmt_geopackage_tests/Makefile \
 		test/sql_stmt_gpkg_epsg492_tests/Makefile \
@@ -157,6 +169,7 @@ AC_CONFIG_FILES([Makefile \
 		test/sql_stmt_proj493_tests/Makefile \
 		test/sql_stmt_proj600_tests/Makefile \
 		test/sql_stmt_proj720_tests/Makefile \
+		test/sql_stmt_proj910_tests/Makefile \
 		test/sql_stmt_proj600security_tests/Makefile \
 		test/sql_stmt_mathsql_tests/Makefile \
 		test/sql_stmt_rtgeom_tests/Makefile \
@@ -180,15 +193,12 @@ AC_CONFIG_FILES([Makefile \
 		test/sql_stmt_point_geom/Makefile \
 		test/sql_stmt_tiny_point/Makefile \
 		test/sql_stmt_postgres_tests/Makefile \
-		test/sql_stmt_geos370_tests/Makefile \
 		test/sql_stmt_renamenew_tests/Makefile \
 		test/sql_stmt_renameold_tests/Makefile \
 		test/sql_stmt_bufoptsnew_tests/Makefile \
 		test/sql_stmt_bufoptsold_tests/Makefile \
 		test/sql_stmt_minizip/Makefile \
 		test/sql_stmt_zip_proj6/Makefile \
-		test/sql_stmt_geos_390/Makefile \
-		test/sql_stmt_geos_non390/Makefile \
 		test/sql_stmt_rtgeom_390/Makefile \
 		test/sql_stmt_rtgeom_non390/Makefile \
 		test/sql_stmt_voronoj_390/Makefile \
@@ -215,31 +225,8 @@ if test x"$enable_mathsql" != "xyes"; then
 fi
 #-----------------------------------------------------------------------
 
-#-----------------------------------------------------------------------
-#   --enable-geocallbacks
-#
-AC_ARG_ENABLE(geocallbacks, [AS_HELP_STRING(
-  [--enable-geocallbacks], [enables geometry callbacks [default=no]])],
-  [], [enable_geocallbacks=no])
-if test x"$enable_geocallbacks" == "xyes"; then
-  AC_CHECK_LIB(sqlite3,sqlite3_rtree_geometry_callback,,AC_MSG_ERROR([obsolete 'libsqlite3' (< v.3.7.3). please retry specifying: --disable-geocallbacks]),-lm)
-else
-  AC_DEFINE(OMIT_GEOCALLBACKS)
-fi
-#-----------------------------------------------------------------------
-
-#-----------------------------------------------------------------------
-#   --enable-knn
-#
-AC_ARG_ENABLE(knn, [AS_HELP_STRING(
-  [--enable-knn], [enables KNN support [default=yes]])],
-  [], [enable_knn=yes])
-if test x"$enable_knn" == "xyes"; then
-  AC_CHECK_LIB(sqlite3,sqlite3_rtree_query_callback,,AC_MSG_ERROR([obsolete 'libsqlite3' (< v.3.8.5). please retry specifying: --disable-knn]),-lm)
-else
-  AC_DEFINE(OMIT_KNN)
-fi
-#-----------------------------------------------------------------------
+PKG_CHECK_MODULES([SQLITE3], [sqlite3], , AC_MSG_ERROR(['libsqlite3' is required but it doesn't seem to be installed on this system.]))
+AC_SUBST(SQLITE3_LIBS)
 
 #-----------------------------------------------------------------------
 #   --enable-proj
@@ -286,7 +273,7 @@ AC_ARG_ENABLE(freexl, [AS_HELP_STRING(
   [], [enable_freexl=yes])
 if test x"$enable_freexl" != "xno"; then
   AC_CHECK_HEADERS(freexl.h,, [AC_MSG_ERROR([cannot find freexl.h, bailing out])])
-  AC_SEARCH_LIBS(freexl_version,freexl,,AC_MSG_ERROR([could not find 'freexl' (or obsolete 'freexl' < v.1.0.1 found).]),-lm)
+  AC_SEARCH_LIBS(freexl_open_ods,freexl,,AC_MSG_ERROR([could not find 'freexl' (or obsolete 'freexl' < v.2.0.0 found).]),-lm)
 else
   AC_DEFINE(OMIT_FREEXL)
 fi
@@ -407,6 +394,28 @@ if test x"$enable_geos" != "xno"; then
   fi
 
   #-----------------------------------------------------------------------
+  #   --enable-geos3100
+  #
+  AC_ARG_ENABLE(geos3100, [AS_HELP_STRING(
+	  [--enable-geos3100], [enables GEOS 3.10.0 features [default=yes]])],
+	  [], [enable_geos3100=$enable_geos370])
+  if test x"$enable_geos3100" != "xno"; then
+	  AC_SEARCH_LIBS(GEOSConstrainedDelaunayTriangulation_r,geos_c,,AC_MSG_ERROR(['libgeos_c' (>= v.3.10.0) is required but it doesn't seem to be installed on this system. You may need to try re-running configure with a --disable-geos3100 parameter.]))
+	  AC_DEFINE(GEOS_3100)
+  fi
+  
+  #-----------------------------------------------------------------------
+  #   --enable-geos3110
+  #
+  AC_ARG_ENABLE(geos3110, [AS_HELP_STRING(
+	  [--enable-geos3100], [enables GEOS 3.11.0 features [default=yes]])],
+	  [], [enable_geos3110=$enable_geos3100])
+  if test x"$enable_geos3110" != "xno"; then
+	  AC_SEARCH_LIBS(GEOSHilbertCode,geos_c,,AC_MSG_ERROR(['libgeos_c' (>= v.3.11.0) is required but it doesn't seem to be installed on this system. You may need to try re-running configure with a --disable-geos3110 parameter.]))
+	  AC_DEFINE(GEOS_3110)
+  fi
+
+  #-----------------------------------------------------------------------
   #   --enable-rttopo
   #
   AC_ARG_ENABLE(rttopo, [AS_HELP_STRING(
@@ -455,14 +464,14 @@ AC_ARG_ENABLE(geopackage, [AS_HELP_STRING(
 if test x"$enable_geopackage" != "xno"; then
   AC_DEFINE(ENABLE_GEOPACKAGE)
 fi
-AM_CONDITIONAL([ENABLE_GEOPACKAGE], [test x"$enable_geopackage" == "xyes"])
+AM_CONDITIONAL([ENABLE_GEOPACKAGE], [test x"$enable_geopackage" = "xyes"])
 
 #-----------------------------------------------------------------------
 
 #-----------------------------------------------------------------------
 #    --enable-gcov
 #
-AC_ARG_ENABLE(gcov, AC_HELP_STRING([--enable-gcov],[turn on code coverage analysis tools]))
+AC_ARG_ENABLE(gcov, AS_HELP_STRING([--enable-gcov],[turn on code coverage analysis tools]))
 if test "x$enable_gcov" = "xyes"; then
     dnl Check for -fprofile-arcs and -ftest-coverage option
     CFLAGS=$CFLAGS" -fprofile-arcs -ftest-coverage -g"

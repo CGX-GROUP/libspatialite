@@ -2,7 +2,7 @@
 
  gg_sqlaux.c -- SQL ancillary functions
 
- version 5.0, 2020 August 1
+ version 5.1.0, 2023 August 4
 
  Author: Sandro Furieri a.furieri@lqt.it
 
@@ -24,7 +24,7 @@ The Original Code is the SpatiaLite library
 
 The Initial Developer of the Original Code is Alessandro Furieri
  
-Portions created by the Initial Developer are Copyright (C) 2008-2021
+Portions created by the Initial Developer are Copyright (C) 2008-2023
 the Initial Developer. All Rights Reserved.
 
 Contributor(s):
@@ -997,7 +997,7 @@ gaiaParseDMS (const char *dms, double *longitude, double *latitude)
     if (*p >= '0' && *p <= '9')
       {
 	  consume_int (p, &p_end, &lat_d);
-	  if (lat_d < 0 && lat_d > 90)
+	  if (lat_d < 0 || lat_d > 90)
 	      return 0;
 	  p = p_end;
       }
@@ -1014,7 +1014,7 @@ gaiaParseDMS (const char *dms, double *longitude, double *latitude)
     if (*p >= '0' && *p <= '9')
       {
 	  consume_int (p, &p_end, &lat_m);
-	  if (lat_m < 0 && lat_m >= 60)
+	  if (lat_m < 0 || lat_m >= 60)
 	      return 0;
 	  p = p_end;
       }
@@ -1031,7 +1031,7 @@ gaiaParseDMS (const char *dms, double *longitude, double *latitude)
     if (*p >= '0' && *p <= '9')
       {
 	  consume_float (p, &p_end, &lat_s);
-	  if (lat_s < 0.0 && lat_s >= 60.0)
+	  if (lat_s < 0.0 || lat_s >= 60.0)
 	      return 0;
 	  p = p_end;
       }
@@ -1075,7 +1075,7 @@ gaiaParseDMS (const char *dms, double *longitude, double *latitude)
     if (*p >= '0' && *p <= '9')
       {
 	  consume_int (p, &p_end, &long_d);
-	  if (long_d < 0 && long_d > 90)
+	  if (long_d < 0 || long_d > 90)
 	      return 0;
 	  p = p_end;
       }
@@ -1092,7 +1092,7 @@ gaiaParseDMS (const char *dms, double *longitude, double *latitude)
     if (*p >= '0' && *p <= '9')
       {
 	  consume_int (p, &p_end, &long_m);
-	  if (long_m < 0 && long_m >= 60)
+	  if (long_m < 0 || long_m >= 60)
 	      return 0;
 	  p = p_end;
       }
@@ -1109,7 +1109,7 @@ gaiaParseDMS (const char *dms, double *longitude, double *latitude)
     if (*p >= '0' && *p <= '9')
       {
 	  consume_float (p, &p_end, &long_s);
-	  if (long_s < 0.0 && long_s >= 60.0)
+	  if (long_s < 0.0 || long_s >= 60.0)
 	      return 0;
 	  p = p_end;
       }
@@ -1149,7 +1149,7 @@ GAIAAUX_DECLARE char *
 gaiaConvertToDMS (double longitude, double latitude)
 {
 /* formatting a DMS string */
-    return gaiaConvertToDMS (longitude, latitude);
+    return gaiaConvertToDMSex (longitude, latitude, 0);
 }
 
 GAIAAUX_DECLARE char *

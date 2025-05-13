@@ -1,7 +1,7 @@
 /* 
  spatialite.h -- Gaia spatial support for SQLite 
   
- version 5.0, 2020 August 1
+ version 5.1.0, 2023 August 4
 
  Author: Sandro Furieri a.furieri@lqt.it
 
@@ -23,7 +23,7 @@ The Original Code is the SpatiaLite library
 
 The Initial Developer of the Original Code is Alessandro Furieri
  
-Portions created by the Initial Developer are Copyright (C) 2008-2021
+Portions created by the Initial Developer are Copyright (C) 2008-2023
 the Initial Developer. All Rights Reserved.
 
 Contributor(s):
@@ -1240,7 +1240,7 @@ extern "C"
   and latitudes (as required by RFC 7946); FALSE if they are in some
   other (undefined) CRS
  \param m_coords TRUE if M-values will be exported as ordinary coordinates;
- FALSE for strict RFC 4796 conformance (no M-Values at all)
+ FALSE for strict RFC 7946 conformance (no M-Values at all)
  \param indent TRUE if the GeoJSON file will be properly indented for enhanced
  human readibility; FALSE if the GeoJSON file will be in a single monolithic
  line without blank spaces.
@@ -2054,49 +2054,6 @@ extern "C"
 						const char *oneway_from,
 						const char *oneway_to,
 						int overwrite);
-
-/**
-  Will attempt to retrieve the Full Extent from an R*Tree (SpatiaLite)
-   
- \param db_handle handle to the current SQLite connection
- \param prefix schema prefix identifying the DB containing the R*Tree\n
- "main" always identifies the main DB (primary, not Attached).
- \param name the name of the R*Tree table
- \param srid the intended SRID for the R*Tree
- 
- \sa gaiaGetGpkgRTreeFullExtent
- 
- \return a Rectangle Geometry corresponding to the Full Extent,\n
- NULL on failure.
- */
-    SPATIALITE_DECLARE gaiaGeomCollPtr gaiaGetRTreeFullExtent (sqlite3 *
-							       db_handle,
-							       const char
-							       *db_prefix,
-							       const char *name,
-							       int srid);
-
-/**
-  Will attempt to retrieve the Full Extent from an R*Tree (GeoPackage)
-   
- \param db_handle handle to the current SQLite connection
- \param prefix schema prefix identifying the DB containing the R*Tree\n
- "main" always identifies the main DB (primary, not Attached).
- \param name the name of the R*Tree table
- \param srid the intended SRID for the R*Tree
- 
- \sa gaiaGetRTreeFullExtent
- 
- \return a Rectangle Geometry corresponding to the Full Extent,\n
- NULL on failure.
- */
-    SPATIALITE_DECLARE gaiaGeomCollPtr gaiaGetGpkgRTreeFullExtent (sqlite3 *
-								   db_handle,
-								   const char
-								   *db_prefix,
-								   const char
-								   *name,
-								   int srid);
 
     SPATIALITE_DECLARE const char *gaia_create_routing_get_last_error (const
 								       void

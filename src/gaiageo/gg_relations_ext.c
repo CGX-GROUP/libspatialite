@@ -2,7 +2,7 @@
 
  gg_relations_ext.c -- Gaia spatial relations [advanced]
     
- version 5.0, 2020 August 1
+ version 5.1.0, 2023 August 4
 
  Author: Sandro Furieri a.furieri@lqt.it
 
@@ -24,7 +24,7 @@ The Original Code is the SpatiaLite library
 
 The Initial Developer of the Original Code is Alessandro Furieri
  
-Portions created by the Initial Developer are Copyright (C) 2008-2021
+Portions created by the Initial Developer are Copyright (C) 2008-2023
 the Initial Developer. All Rights Reserved.
 
 Contributor(s):
@@ -709,7 +709,1219 @@ gaiaFrechetDistanceDensify_r (const void *p_cache, gaiaGeomCollPtr geom1,
     return ret;
 }
 
+GAIAGEO_DECLARE gaiaGeomCollPtr
+gaiaMinimumRotatedRectangle (gaiaGeomCollPtr geom)
+{
+/* 
+/ Calculates the minimum rotated rectangular POLYGON which encloses 
+/ the input geometry
+/
+/ The rectangle has width equal to the minimum diameter, and a longer length. 
+/ If the convex hull of the input is degenerate (a line or point) a LINESTRING 
+/ or POINT is returned. 
+/ The minimum rotated rectangle can be used as an extremely generalized 
+/ representation for the given geometry.
+*/
+    gaiaGeomCollPtr geo = NULL;
+#ifndef GEOS_USE_ONLY_R_API	/* obsolete versions non fully thread-safe */
+    GEOSGeometry *g1;
+    GEOSGeometry *g2;
+    gaiaResetGeosMsg ();
+    if (!geom)
+	return NULL;
+    g1 = gaiaToGeos (geom);
+    g2 = GEOSMinimumRotatedRectangle (g1);
+    GEOSGeom_destroy (g1);
+    if (!g2)
+	return NULL;
+    if (geom->DimensionModel == GAIA_XY_Z)
+	geo = gaiaFromGeos_XYZ (g2);
+    else if (geom->DimensionModel == GAIA_XY_M)
+	geo = gaiaFromGeos_XYM (g2);
+    else if (geom->DimensionModel == GAIA_XY_Z_M)
+	geo = gaiaFromGeos_XYZM (g2);
+    else
+	geo = gaiaFromGeos_XY (g2);
+    GEOSGeom_destroy (g2);
+    if (geo == NULL)
+	return NULL;
+    geo->Srid = geom->Srid;
+#else
+    if (geom == NULL || tolerance == 0.0)
+	geom = NULL;		/* silencing stupid compiler warnings */
+#endif
+    return geo;
+}
+
+GAIAGEO_DECLARE gaiaGeomCollPtr
+gaiaMinimumRotatedRectangle_r (const void *p_cache, gaiaGeomCollPtr geom)
+{
+/* 
+/ Calculates the minimum rotated rectangular POLYGON which encloses 
+/ the input geometry
+/
+/ The rectangle has width equal to the minimum diameter, and a longer length. 
+/ If the convex hull of the input is degenerate (a line or point) a LINESTRING 
+/ or POINT is returned. 
+/ The minimum rotated rectangle can be used as an extremely generalized 
+/ representation for the given geometry.
+*/
+    gaiaGeomCollPtr geo;
+    GEOSGeometry *g1;
+    GEOSGeometry *g2;
+    struct splite_internal_cache *cache =
+	(struct splite_internal_cache *) p_cache;
+    GEOSContextHandle_t handle = NULL;
+    if (cache == NULL)
+	return NULL;
+    if (cache->magic1 != SPATIALITE_CACHE_MAGIC1
+	|| cache->magic2 != SPATIALITE_CACHE_MAGIC2)
+	return NULL;
+    handle = cache->GEOS_handle;
+    if (handle == NULL)
+	return NULL;
+    gaiaResetGeosMsg_r (cache);
+    if (!geom)
+	return NULL;
+    g1 = gaiaToGeos_r (cache, geom);
+    g2 = GEOSMinimumRotatedRectangle_r (handle, g1);
+    GEOSGeom_destroy_r (handle, g1);
+    if (!g2)
+	return NULL;
+    if (geom->DimensionModel == GAIA_XY_Z)
+	geo = gaiaFromGeos_XYZ_r (cache, g2);
+    else if (geom->DimensionModel == GAIA_XY_M)
+	geo = gaiaFromGeos_XYM_r (cache, g2);
+    else if (geom->DimensionModel == GAIA_XY_Z_M)
+	geo = gaiaFromGeos_XYZM_r (cache, g2);
+    else
+	geo = gaiaFromGeos_XY_r (cache, g2);
+    GEOSGeom_destroy_r (handle, g2);
+    if (geo == NULL)
+	return NULL;
+    geo->Srid = geom->Srid;
+    return geo;
+}
+
+GAIAGEO_DECLARE gaiaGeomCollPtr
+gaiaMinimumBoundingCircle (gaiaGeomCollPtr geom, double *xradius,
+			   gaiaGeomCollPtr * xcenter)
+{
+/* 
+/ Returns the Minimum Bounding Circle for a  generic geometry, 
+/ * xradius will point to the Radius vaiue of the circle
+/ * xcenter will point to the POINT Geometry corresponding to the center
+/   of the circle
+*/
+    gaiaGeomCollPtr geo = NULL;
+    gaiaGeomCollPtr center = NULL;
+#ifndef GEOS_USE_ONLY_R_API	/* obsolete versions non fully thread-safe */
+    GEOSGeometry *g1;
+    GEOSGeometry *g2;
+    GEOSGeometry *g3;
+    double radius;
+    gaiaResetGeosMsg ();
+    if (xradius != NULL)
+	*xradius = 0.0;
+    if (xcenter != NULL)
+	*xcenter = NULL;
+    if (!geom)
+	return NULL;
+    g1 = gaiaToGeos (geom);
+    g2 = GEOSMinimumBoundingCircle (g1, &radius, &g3);
+    GEOSGeom_destroy (g1);
+    if (!g2)
+	return NULL;
+    if (!g3)
+	return NULL;
+    if (geom->DimensionModel == GAIA_XY_Z)
+	center = gaiaFromGeos_XYZ (g3);
+    else if (geom->DimensionModel == GAIA_XY_M)
+	center = gaiaFromGeos_XYM (g3);
+    else if (geom->DimensionModel == GAIA_XY_Z_M)
+	center = gaiaFromGeos_XYZM (g3);
+    else
+	center = gaiaFromGeos_XY (g3);
+    GEOSGeom_destroy (g3);
+    if (geom->DimensionModel == GAIA_XY_Z)
+	geo = gaiaFromGeos_XYZ (g2);
+    else if (geom->DimensionModel == GAIA_XY_M)
+	geo = gaiaFromGeos_XYM (g2);
+    else if (geom->DimensionModel == GAIA_XY_Z_M)
+	geo = gaiaFromGeos_XYZM (g2);
+    else
+	geo = gaiaFromGeos_XY (g2);
+    GEOSGeom_destroy (g2);
+    if (geo == NULL || center == NULL)
+      {
+	  if (geo != NULL)
+	      gaiaFreeGeomColl (geo);
+	  if (center != NULL)
+	      gaiaFreeGeomColl (center);
+	  return NULL;
+      }
+    geo->Srid = geom->Srid;
+    if (xradius != NULL)
+	*xradius = radius;
+    if (xcenter != NULL)
+	*xcenter = center;
+    else
+	gaiaFreeGeomColl (center);
+#else
+    if (geom == NULL || center == NULL)
+	geom = NULL;		/* silencing stupid compiler warnings */
+#endif
+    return geo;
+}
+
+GAIAGEO_DECLARE gaiaGeomCollPtr
+gaiaMinimumBoundingCircle_r (const void *p_cache, gaiaGeomCollPtr geom,
+			     double *xradius, gaiaGeomCollPtr * xcenter)
+{
+/* 
+/ Returns the Minimum Bounding Circle for a  generic geometry, 
+/ * xradius will point to the Radius vaiue of the circle
+/ * xcenter will point to the POINT Geometry corresponding to the center
+/   of the circle
+*/
+    gaiaGeomCollPtr geo;
+    gaiaGeomCollPtr center;
+    GEOSGeometry *g1;
+    GEOSGeometry *g2;
+    GEOSGeometry *g3;
+    double radius;
+    struct splite_internal_cache *cache =
+	(struct splite_internal_cache *) p_cache;
+    GEOSContextHandle_t handle = NULL;
+    if (xradius != NULL)
+	*xradius = 0.0;
+    if (xcenter != NULL)
+	*xcenter = NULL;
+    if (cache == NULL)
+	return NULL;
+    if (cache->magic1 != SPATIALITE_CACHE_MAGIC1
+	|| cache->magic2 != SPATIALITE_CACHE_MAGIC2)
+	return NULL;
+    handle = cache->GEOS_handle;
+    if (handle == NULL)
+	return NULL;
+    gaiaResetGeosMsg_r (cache);
+    if (!geom)
+	return NULL;
+    g1 = gaiaToGeos_r (cache, geom);
+    g2 = GEOSMinimumBoundingCircle_r (handle, g1, &radius, &g3);
+    GEOSGeom_destroy_r (handle, g1);
+    if (!g2)
+	return NULL;
+    if (!g3)
+	return NULL;
+    if (geom->DimensionModel == GAIA_XY_Z)
+	center = gaiaFromGeos_XYZ_r (cache, g3);
+    else if (geom->DimensionModel == GAIA_XY_M)
+	center = gaiaFromGeos_XYM_r (cache, g3);
+    else if (geom->DimensionModel == GAIA_XY_Z_M)
+	center = gaiaFromGeos_XYZM_r (cache, g3);
+    else
+	center = gaiaFromGeos_XY_r (cache, g3);
+    GEOSGeom_destroy_r (handle, g3);
+    if (geom->DimensionModel == GAIA_XY_Z)
+	geo = gaiaFromGeos_XYZ_r (cache, g2);
+    else if (geom->DimensionModel == GAIA_XY_M)
+	geo = gaiaFromGeos_XYM_r (cache, g2);
+    else if (geom->DimensionModel == GAIA_XY_Z_M)
+	geo = gaiaFromGeos_XYZM_r (cache, g2);
+    else
+	geo = gaiaFromGeos_XY_r (cache, g2);
+    GEOSGeom_destroy_r (handle, g2);
+    if (geo == NULL || center == NULL)
+      {
+	  if (geo != NULL)
+	      gaiaFreeGeomColl (geo);
+	  if (center != NULL)
+	      gaiaFreeGeomColl (center);
+	  return NULL;
+      }
+    geo->Srid = geom->Srid;
+    if (xradius != NULL)
+	*xradius = radius;
+    if (xcenter != NULL)
+	*xcenter = center;
+    else
+	gaiaFreeGeomColl (center);
+    return geo;
+}
+
+GAIAGEO_DECLARE gaiaGeomCollPtr
+gaiaMinimumWidth (gaiaGeomCollPtr geom)
+{
+/* 
+/ Returns a LINESTRING geometry which represents the minimum diameter of the geometry.
+/
+/ The minimum diameter is defined to be the width of the smallest band that
+/ contains the geometry, where a band is a strip of the plane defined
+/ by two parallel lines. This can be thought of as the smallest hole that the geometry
+/ can be moved through, with a single rotation.
+*/
+    gaiaGeomCollPtr geo = NULL;
+#ifndef GEOS_USE_ONLY_R_API	/* obsolete versions non fully thread-safe */
+    GEOSGeometry *g1;
+    GEOSGeometry *g2;
+    gaiaResetGeosMsg ();
+    if (!geom)
+	return NULL;
+    g1 = gaiaToGeos (geom);
+    g2 = GEOSMinimumWidth (g1);
+    GEOSGeom_destroy (g1);
+    if (!g2)
+	return NULL;
+    if (geom->DimensionModel == GAIA_XY_Z)
+	geo = gaiaFromGeos_XYZ (g2);
+    else if (geom->DimensionModel == GAIA_XY_M)
+	geo = gaiaFromGeos_XYM (g2);
+    else if (geom->DimensionModel == GAIA_XY_Z_M)
+	geo = gaiaFromGeos_XYZM (g2);
+    else
+	geo = gaiaFromGeos_XY (g2);
+    GEOSGeom_destroy (g2);
+    if (geo == NULL)
+	return NULL;
+    geo->Srid = geom->Srid;
+#else
+    if (geom == NULL)
+	geom = NULL;		/* silencing stupid compiler warnings */
+#endif
+    return geo;
+}
+
+GAIAGEO_DECLARE gaiaGeomCollPtr
+gaiaMinimumWidth_r (const void *p_cache, gaiaGeomCollPtr geom)
+{
+/* 
+/ Returns a LINESTRING geometry which represents the minimum diameter of the geometry.
+/
+/ The minimum diameter is defined to be the width of the smallest band that
+/ contains the geometry, where a band is a strip of the plane defined
+/ by two parallel lines. This can be thought of as the smallest hole that the geometry
+/ can be moved through, with a single rotation.
+*/
+    gaiaGeomCollPtr geo;
+    GEOSGeometry *g1;
+    GEOSGeometry *g2;
+    struct splite_internal_cache *cache =
+	(struct splite_internal_cache *) p_cache;
+    GEOSContextHandle_t handle = NULL;
+    if (cache == NULL)
+	return NULL;
+    if (cache->magic1 != SPATIALITE_CACHE_MAGIC1
+	|| cache->magic2 != SPATIALITE_CACHE_MAGIC2)
+	return NULL;
+    handle = cache->GEOS_handle;
+    if (handle == NULL)
+	return NULL;
+    gaiaResetGeosMsg_r (cache);
+    if (!geom)
+	return NULL;
+    g1 = gaiaToGeos_r (cache, geom);
+    g2 = GEOSMinimumWidth_r (handle, g1);
+    GEOSGeom_destroy_r (handle, g1);
+    if (!g2)
+	return NULL;
+    if (geom->DimensionModel == GAIA_XY_Z)
+	geo = gaiaFromGeos_XYZ_r (cache, g2);
+    else if (geom->DimensionModel == GAIA_XY_M)
+	geo = gaiaFromGeos_XYM_r (cache, g2);
+    else if (geom->DimensionModel == GAIA_XY_Z_M)
+	geo = gaiaFromGeos_XYZM_r (cache, g2);
+    else
+	geo = gaiaFromGeos_XY_r (cache, g2);
+    GEOSGeom_destroy_r (handle, g2);
+    if (geo == NULL)
+	return NULL;
+    geo->Srid = geom->Srid;
+    return geo;
+}
+
+GAIAGEO_DECLARE int
+gaiaMinimumClearance (gaiaGeomCollPtr geom, double *clearance)
+{
+/* 
+/ Computes the minimum clearance of a geometry.  The minimum clearance is the smallest amount by which
+/ a vertex could be move to produce an invalid polygon, a non-simple linestring, or a multipoint with
+/ repeated points.  If a geometry has a minimum clearance of 'eps', it can be said that:
+/
+/ -  No two distinct vertices in the geometry are separated by less than 'eps'
+/ -  No vertex is closer than 'eps' to a line segment of which it is not an endpoint.
+/
+/ If the minimum clearance cannot be defined for a geometry (such as with a single point, or a multipoint
+/ whose points are identical, a value of Infinity will be calculated.
+*/
+#ifndef GEOS_USE_ONLY_R_API	/* obsolete versions non fully thread-safe */
+    GEOSGeometry *g1;
+    int ret;
+    double result;
+    gaiaResetGeosMsg ();
+    if (!geom)
+	return 0;
+    g1 = gaiaToGeos (geom);
+    ret = GEOSMinimumClearance (g1, &result);
+    GEOSGeom_destroy (g1);
+    if (ret != 0)
+	return 0;
+    *clearance = result;
+    return 1;
+#else
+    if (geom == NULL)
+	geom = NULL;		/* silencing stupid compiler warnings */
+#endif
+    return 0;
+}
+
+GAIAGEO_DECLARE int
+gaiaMinimumClearance_r (const void *p_cache, gaiaGeomCollPtr geom,
+			double *clearance)
+{
+/* 
+/ Computes the minimum clearance of a geometry.  The minimum clearance is the smallest amount by which
+/ a vertex could be move to produce an invalid polygon, a non-simple linestring, or a multipoint with
+/ repeated points.  If a geometry has a minimum clearance of 'eps', it can be said that:
+/
+/ -  No two distinct vertices in the geometry are separated by less than 'eps'
+/ -  No vertex is closer than 'eps' to a line segment of which it is not an endpoint.
+/
+/ If the minimum clearance cannot be defined for a geometry (such as with a single point, or a multipoint
+/ whose points are identical, a value of Infinity will be calculated..
+*/
+    GEOSGeometry *g1;
+    int ret;
+    double result;
+    struct splite_internal_cache *cache =
+	(struct splite_internal_cache *) p_cache;
+    GEOSContextHandle_t handle = NULL;
+    if (cache == NULL)
+	return 0;
+    if (cache->magic1 != SPATIALITE_CACHE_MAGIC1
+	|| cache->magic2 != SPATIALITE_CACHE_MAGIC2)
+	return 0;
+    handle = cache->GEOS_handle;
+    if (handle == NULL)
+	return 0;
+    gaiaResetGeosMsg_r (cache);
+    if (!geom)
+	return 0;
+    g1 = gaiaToGeos_r (cache, geom);
+    ret = GEOSMinimumClearance_r (handle, g1, &result);
+    GEOSGeom_destroy_r (handle, g1);
+    if (ret != 0)
+	return 0;
+    *clearance = result;
+    return 1;
+}
+
+GAIAGEO_DECLARE gaiaGeomCollPtr
+gaiaMinimumClearanceLine (gaiaGeomCollPtr geom)
+{
+/* 
+/ Returns a LineString whose endpoints define the minimum clearance of a geometry.
+/
+/ If the geometry has no minimum clearance (as e.g. a POINT), NULL will be returned.
+*/
+    gaiaGeomCollPtr geo = NULL;
+#ifndef GEOS_USE_ONLY_R_API	/* obsolete versions non fully thread-safe */
+    GEOSGeometry *g1;
+    GEOSGeometry *g2;
+    gaiaResetGeosMsg ();
+    if (!geom)
+	return NULL;
+    g1 = gaiaToGeos (geom);
+    g2 = GEOSMinimumClearanceLine (g1);
+    GEOSGeom_destroy (g1);
+    if (!g2)
+	return NULL;
+    if (geom->DimensionModel == GAIA_XY_Z)
+	geo = gaiaFromGeos_XYZ (g2);
+    else if (geom->DimensionModel == GAIA_XY_M)
+	geo = gaiaFromGeos_XYM (g2);
+    else if (geom->DimensionModel == GAIA_XY_Z_M)
+	geo = gaiaFromGeos_XYZM (g2);
+    else
+	geo = gaiaFromGeos_XY (g2);
+    GEOSGeom_destroy (g2);
+    if (geo == NULL)
+	return NULL;
+    geo->Srid = geom->Srid;
+#else
+    if (geom == NULL)
+	geom = NULL;		/* silencing stupid compiler warnings */
+#endif
+    return geo;
+}
+
+GAIAGEO_DECLARE gaiaGeomCollPtr
+gaiaMinimumClearanceLine_r (const void *p_cache, gaiaGeomCollPtr geom)
+{
+/* 
+/ Returns a LineString whose endpoints define the minimum clearance of a geometry.
+/
+/ If the geometry has no minimum clearance (as e.g. a POINT), NULL will be returned.
+*/
+    gaiaGeomCollPtr geo;
+    GEOSGeometry *g1;
+    GEOSGeometry *g2;
+    struct splite_internal_cache *cache =
+	(struct splite_internal_cache *) p_cache;
+    GEOSContextHandle_t handle = NULL;
+    if (cache == NULL)
+	return NULL;
+    if (cache->magic1 != SPATIALITE_CACHE_MAGIC1
+	|| cache->magic2 != SPATIALITE_CACHE_MAGIC2)
+	return NULL;
+    handle = cache->GEOS_handle;
+    if (handle == NULL)
+	return NULL;
+    gaiaResetGeosMsg_r (cache);
+    if (!geom)
+	return NULL;
+    g1 = gaiaToGeos_r (cache, geom);
+    g2 = GEOSMinimumClearanceLine_r (handle, g1);
+    GEOSGeom_destroy_r (handle, g1);
+    if (!g2)
+	return NULL;
+    if (geom->DimensionModel == GAIA_XY_Z)
+	geo = gaiaFromGeos_XYZ_r (cache, g2);
+    else if (geom->DimensionModel == GAIA_XY_M)
+	geo = gaiaFromGeos_XYM_r (cache, g2);
+    else if (geom->DimensionModel == GAIA_XY_Z_M)
+	geo = gaiaFromGeos_XYZM_r (cache, g2);
+    else
+	geo = gaiaFromGeos_XY_r (cache, g2);
+    GEOSGeom_destroy_r (handle, g2);
+    if (geo == NULL)
+	return NULL;
+    geo->Srid = geom->Srid;
+    return geo;
+}
+
 #endif /* end GEOS_370 conditional */
+
+#ifdef GEOS_3100		/* only if GEOS_3100 support is available */
+
+GAIAGEO_DECLARE gaiaGeomCollPtr
+gaiaGeosDensify (gaiaGeomCollPtr geom, double tolerance)
+{
+/* return a densified geometry using a given distance tolerance. */
+#ifndef GEOS_USE_ONLY_R_API	/* obsolete versions non fully thread-safe */
+    GEOSGeometry *in;
+    GEOSGeometry *out;
+    gaiaGeomCollPtr result = NULL;
+    gaiaResetGeosMsg ();
+    if (!geom)
+	return NULL;
+    if (tolerance <= 0.0)
+	return NULL;
+    in = gaiaToGeos (geom);
+    out = GEOSDensify (in, tolerance);
+    GEOSGeom_destroy (in);
+    if (!out)
+	return NULL;
+    if (geom->DimensionModel == GAIA_XY_Z)
+	result = gaiaFromGeos_XYZ (out);
+    else if (geom->DimensionModel == GAIA_XY_M)
+	result = gaiaFromGeos_XYM (out);
+    else if (geom->DimensionModel == GAIA_XY_Z_M)
+	result = gaiaFromGeos_XYZM (out);
+    else
+	result = gaiaFromGeos_XY (out);
+    GEOSGeom_destroy (out);
+    if (result == NULL)
+	return NULL;
+    result->Srid = geom->Srid;
+#else
+    if (geom == NULL)
+	geom = NULL;		/* silencing stupid compiler warnings */
+#endif
+    return result;
+}
+
+GAIAGEO_DECLARE gaiaGeomCollPtr
+gaiaGeosDensify_r (const void *p_cache, gaiaGeomCollPtr geom, double tolerance)
+{
+/* return a densified geometry using a given distance tolerance. */
+    GEOSGeometry *in;
+    GEOSGeometry *out;
+    gaiaGeomCollPtr result = NULL;
+    struct splite_internal_cache *cache =
+	(struct splite_internal_cache *) p_cache;
+    GEOSContextHandle_t handle = NULL;
+    if (cache == NULL)
+	return 0;
+    if (cache->magic1 != SPATIALITE_CACHE_MAGIC1
+	|| cache->magic2 != SPATIALITE_CACHE_MAGIC2)
+	return 0;
+    handle = cache->GEOS_handle;
+    if (handle == NULL)
+	return 0;
+    gaiaResetGeosMsg_r (cache);
+    if (!geom)
+	return NULL;
+    if (tolerance <= 0.0)
+	return NULL;
+    in = gaiaToGeos_r (cache, geom);
+    out = GEOSDensify_r (handle, in, tolerance);
+    GEOSGeom_destroy_r (handle, in);
+    if (!out)
+	return NULL;
+    if (geom->DimensionModel == GAIA_XY_Z)
+	result = gaiaFromGeos_XYZ_r (cache, out);
+    else if (geom->DimensionModel == GAIA_XY_M)
+	result = gaiaFromGeos_XYM_r (cache, out);
+    else if (geom->DimensionModel == GAIA_XY_Z_M)
+	result = gaiaFromGeos_XYZM_r (cache, out);
+    else
+	result = gaiaFromGeos_XY_r (cache, out);
+    GEOSGeom_destroy (out);
+    if (result == NULL)
+	return NULL;
+    result->Srid = geom->Srid;
+    return result;
+}
+
+GAIAGEO_DECLARE gaiaGeomCollPtr
+gaiaConstrainedDelaunayTriangulation (gaiaGeomCollPtr geom)
+{
+/* Constrained Delaunay Triangulation */
+    gaiaGeomCollPtr result = NULL;
+#ifndef GEOS_USE_ONLY_R_API	/* obsolete versions non fully thread-safe */
+    GEOSGeometry *g1;
+    GEOSGeometry *g2;
+    gaiaResetGeosMsg ();
+    if (!geom)
+	return NULL;
+    g1 = gaiaToGeos (geom);
+    g2 = GEOSConstrainedDelaunayTriangulation (g1);
+    GEOSGeom_destroy (g1);
+    if (!g2)
+	return NULL;
+    if (geom->DimensionModel == GAIA_XY_Z)
+	result = gaiaFromGeos_XYZ (g2);
+    else if (geom->DimensionModel == GAIA_XY_M)
+	result = gaiaFromGeos_XYM (g2);
+    else if (geom->DimensionModel == GAIA_XY_Z_M)
+	result = gaiaFromGeos_XYZM (g2);
+    else
+	result = gaiaFromGeos_XY (g2);
+    GEOSGeom_destroy (g2);
+    if (result == NULL)
+	return NULL;
+    result->Srid = geom->Srid;
+#else
+    if (geom == NULL)
+	geom = NULL;		/* silencing stupid compiler warnings */
+#endif
+    return result;
+}
+
+GAIAGEO_DECLARE gaiaGeomCollPtr
+gaiaConstrainedDelaunayTriangulation_r (const void *p_cache,
+					gaiaGeomCollPtr geom)
+{
+/* Constrained Delaunay Triangulation */
+    GEOSGeometry *g1;
+    GEOSGeometry *g2;
+    gaiaGeomCollPtr result;
+    struct splite_internal_cache *cache =
+	(struct splite_internal_cache *) p_cache;
+    GEOSContextHandle_t handle = NULL;
+    if (cache == NULL)
+	return NULL;
+    if (cache->magic1 != SPATIALITE_CACHE_MAGIC1
+	|| cache->magic2 != SPATIALITE_CACHE_MAGIC2)
+	return NULL;
+    handle = cache->GEOS_handle;
+    if (handle == NULL)
+	return NULL;
+    gaiaResetGeosMsg_r (cache);
+    if (!geom)
+	return NULL;
+    g1 = gaiaToGeos_r (cache, geom);
+    g2 = GEOSConstrainedDelaunayTriangulation_r (handle, g1);
+    GEOSGeom_destroy_r (handle, g1);
+    if (!g2)
+	return NULL;
+    if (geom->DimensionModel == GAIA_XY_Z)
+	result = gaiaFromGeos_XYZ_r (cache, g2);
+    else if (geom->DimensionModel == GAIA_XY_M)
+	result = gaiaFromGeos_XYM_r (cache, g2);
+    else if (geom->DimensionModel == GAIA_XY_Z_M)
+	result = gaiaFromGeos_XYZM_r (cache, g2);
+    else
+	result = gaiaFromGeos_XY_r (cache, g2);
+    GEOSGeom_destroy_r (handle, g2);
+    if (result == NULL)
+	return NULL;
+    result->Srid = geom->Srid;
+    return result;
+}
+
+GAIAGEO_DECLARE gaiaGeomCollPtr
+gaiaGeosMakeValid (gaiaGeomCollPtr geom, int keep_collapsed)
+{
+/* 
+/ Attempts to make an invalid geometry valid
+/ GEOS method: STRUCTURE 
+*/
+    gaiaGeomCollPtr result = NULL;
+#ifndef GEOS_USE_ONLY_R_API	/* obsolete versions non fully thread-safe */
+    GEOSGeometry *g1;
+    GEOSGeometry *g2;
+    GEOSMakeValidParams *params;
+    gaiaResetGeosMsg ();
+    if (!geom)
+	return NULL;
+    g1 = gaiaToGeos (geom);
+    params = GEOSMakeValidParams_create ();
+    GEOSMakeValidParams_setMethod (params, GEOS_MAKE_VALID_STRUCTURE);
+    GEOSMakeValidParams_setKeepCollapsed (params, keep_collapsed);
+    g2 = GEOSMakeValidWithParams (g1, params);
+    GEOSMakeValidParams_destroy (params);
+    GEOSGeom_destroy (g1);
+    if (!g2)
+	return NULL;
+    if (geom->DimensionModel == GAIA_XY_Z)
+	result = gaiaFromGeos_XYZ (g2);
+    else if (geom->DimensionModel == GAIA_XY_M)
+	result = gaiaFromGeos_XYM (g2);
+    else if (geom->DimensionModel == GAIA_XY_Z_M)
+	result = gaiaFromGeos_XYZM (g2);
+    else
+	result = gaiaFromGeos_XY (g2);
+    GEOSGeom_destroy (g2);
+    if (result == NULL)
+	return NULL;
+    result->Srid = geom->Srid;
+#else
+    if (geom == NULL)
+	geom = NULL;		/* silencing stupid compiler warnings */
+#endif
+    return result;
+}
+
+GAIAGEO_DECLARE gaiaGeomCollPtr
+gaiaGeosMakeValid_r (const void *p_cache,
+		     gaiaGeomCollPtr geom, int keep_collapsed)
+{
+/* 
+/ Attempts to make an invalid geometry valid
+/ GEOS method: STRUCTURE 
+*/
+    GEOSGeometry *g1;
+    GEOSGeometry *g2;
+    GEOSMakeValidParams *params;
+    gaiaGeomCollPtr result;
+    struct splite_internal_cache *cache =
+	(struct splite_internal_cache *) p_cache;
+    GEOSContextHandle_t handle = NULL;
+    if (cache == NULL)
+	return NULL;
+    if (cache->magic1 != SPATIALITE_CACHE_MAGIC1
+	|| cache->magic2 != SPATIALITE_CACHE_MAGIC2)
+	return NULL;
+    handle = cache->GEOS_handle;
+    if (handle == NULL)
+	return NULL;
+    gaiaResetGeosMsg_r (cache);
+    if (!geom)
+	return NULL;
+    g1 = gaiaToGeos_r (cache, geom);
+    params = GEOSMakeValidParams_create_r (handle);
+    GEOSMakeValidParams_setMethod_r (handle, params, GEOS_MAKE_VALID_STRUCTURE);
+    GEOSMakeValidParams_setKeepCollapsed_r (handle, params, keep_collapsed);
+    g2 = GEOSMakeValidWithParams_r (handle, g1, params);
+    GEOSMakeValidParams_destroy_r (handle, params);
+    GEOSGeom_destroy_r (handle, g1);
+    if (!g2)
+	return NULL;
+    if (geom->DimensionModel == GAIA_XY_Z)
+	result = gaiaFromGeos_XYZ_r (cache, g2);
+    else if (geom->DimensionModel == GAIA_XY_M)
+	result = gaiaFromGeos_XYM_r (cache, g2);
+    else if (geom->DimensionModel == GAIA_XY_Z_M)
+	result = gaiaFromGeos_XYZM_r (cache, g2);
+    else
+	result = gaiaFromGeos_XY_r (cache, g2);
+    GEOSGeom_destroy_r (handle, g2);
+    if (result == NULL)
+	return NULL;
+    result->Srid = geom->Srid;
+    return result;
+}
+
+GAIAGEO_DECLARE gaiaGeomCollPtr
+gaiaMaximumInscribedCircle (gaiaGeomCollPtr geom, double tolerance)
+{
+/* 
+/ Constructs the Maximum Inscribed Circle for a  polygonal geometry, 
+/ up to a specified tolerance.
+/ The Maximum Inscribed Circle is determined by a point in the interior 
+/ of the area which has the farthest distance from the area boundary, 
+/ along with a boundary point at that distance.
+/ In the context of geography the center of the Maximum Inscribed Circle 
+/ is known as the Pole of Inaccessibility. 
+/ A cartographic use case is to determine a suitable point to place a 
+/ map label within a polygon.
+/ The radius length of the Maximum Inscribed Circle is a  measure of 
+/ how "narrow" a polygon is. 
+/ It is the distance at which the negative buffer becomes empty.
+/ The class supports polygons with holes and multipolygons.
+/ The implementation uses a successive-approximation technique over a 
+/ grid of square cells covering the area geometry.
+/ The grid is refined using a branch-and-bound algorithm. 
+/ Point containment and distance are computed in a performant way by 
+/ using spatial indexes.
+/ Returns a two-point linestring, with one point at the center of the 
+/ inscribed circle and the other on the boundary of the inscribed circle.
+*/
+#ifndef GEOS_USE_ONLY_R_API	/* obsolete versions non fully thread-safe */
+    GEOSGeometry *in;
+    GEOSGeometry *out;
+    gaiaGeomCollPtr result = NULL;
+    gaiaResetGeosMsg ();
+    if (!geom)
+	return NULL;
+    in = gaiaToGeos (geom);
+    out = GEOSMaximumInscribedCircle (in, tolerance);
+    GEOSGeom_destroy (in);
+    if (!out)
+	return NULL;
+    if (geom->DimensionModel == GAIA_XY_Z)
+	result = gaiaFromGeos_XYZ (out);
+    else if (geom->DimensionModel == GAIA_XY_M)
+	result = gaiaFromGeos_XYM (out);
+    else if (geom->DimensionModel == GAIA_XY_Z_M)
+	result = gaiaFromGeos_XYZM (out);
+    else
+	result = gaiaFromGeos_XY (out);
+    GEOSGeom_destroy (out);
+    if (result == NULL)
+	return NULL;
+    result->Srid = geom->Srid;
+#else
+    if (geom == NULL || tolerance == NULL)
+	geom = NULL;		/* silencing stupid compiler warnings */
+#endif
+    return result;
+}
+
+GAIAGEO_DECLARE gaiaGeomCollPtr
+gaiaMaximumInscribedCircle_r (const void *p_cache, gaiaGeomCollPtr geom,
+			      double tolerance)
+{
+/* 
+/ Constructs the Maximum Inscribed Circle for a  polygonal geometry, 
+/ up to a specified tolerance.
+/ The Maximum Inscribed Circle is determined by a point in the interior 
+/ of the area which has the farthest distance from the area boundary, 
+/ along with a boundary point at that distance.
+/ In the context of geography the center of the Maximum Inscribed Circle 
+/ is known as the Pole of Inaccessibility. 
+/ A cartographic use case is to determine a suitable point to place a 
+/ map label within a polygon.
+/ The radius length of the Maximum Inscribed Circle is a  measure of 
+/ how "narrow" a polygon is. 
+/ It is the distance at which the negative buffer becomes empty.
+/ The class supports polygons with holes and multipolygons.
+/ The implementation uses a successive-approximation technique over a 
+/ grid of square cells covering the area geometry.
+/ The grid is refined using a branch-and-bound algorithm. 
+/ Point containment and distance are computed in a performant way by 
+/ using spatial indexes.
+/ Returns a two-point linestring, with one point at the center of the 
+/ inscribed circle and the other on the boundary of the inscribed circle.
+*/
+    GEOSGeometry *in;
+    GEOSGeometry *out;
+    gaiaGeomCollPtr result = NULL;
+    struct splite_internal_cache *cache =
+	(struct splite_internal_cache *) p_cache;
+    GEOSContextHandle_t handle = NULL;
+    if (cache == NULL)
+	return 0;
+    if (cache->magic1 != SPATIALITE_CACHE_MAGIC1
+	|| cache->magic2 != SPATIALITE_CACHE_MAGIC2)
+	return 0;
+    handle = cache->GEOS_handle;
+    if (handle == NULL)
+	return 0;
+    gaiaResetGeosMsg_r (cache);
+    if (!geom)
+	return NULL;
+    in = gaiaToGeos_r (cache, geom);
+    out = GEOSMaximumInscribedCircle_r (handle, in, tolerance);
+    GEOSGeom_destroy (in);
+    if (!out)
+	return NULL;
+    if (geom->DimensionModel == GAIA_XY_Z)
+	result = gaiaFromGeos_XYZ_r (cache, out);
+    else if (geom->DimensionModel == GAIA_XY_M)
+	result = gaiaFromGeos_XYM_r (cache, out);
+    else if (geom->DimensionModel == GAIA_XY_Z_M)
+	result = gaiaFromGeos_XYZM_r (cache, out);
+    else
+	result = gaiaFromGeos_XY_r (cache, out);
+    GEOSGeom_destroy (out);
+    if (result == NULL)
+	return NULL;
+    result->Srid = geom->Srid;
+    return result;
+}
+
+GAIAGEO_DECLARE gaiaGeomCollPtr
+gaiaLargestEmptyCircle (gaiaGeomCollPtr geom, gaiaGeomCollPtr boundary,
+			double tolerance)
+{
+/* 
+/ Returns a LINESTRING geometry which represents the minimum diameter of the geometry.
+/ The minimum diameter is defined to be the width of the smallest band that
+/ contains the geometry, where a band is a strip of the plane defined
+/ by two parallel lines. This can be thought of as the smallest hole that 
+/ the geometry can be moved through, with a single rotation.
+*/
+#ifndef GEOS_USE_ONLY_R_API	/* obsolete versions non fully thread-safe */
+    GEOSGeometry *in;
+    GEOSGeometry *bdry;
+    GEOSGeometry *out;
+    gaiaGeomCollPtr result = NULL;
+    gaiaResetGeosMsg ();
+    if (!geom || !boundary)
+	return NULL;
+    in = gaiaToGeos (geom);
+    bdry = gaiaToGeos (boundary);
+    out = GEOSLargestEmptyCircle (in, bdry, tolerance);
+    GEOSGeom_destroy (in);
+    GEOSGeom_destroy (bdry);
+    if (!out)
+	return NULL;
+    if (geom->DimensionModel == GAIA_XY_Z)
+	result = gaiaFromGeos_XYZ (out);
+    else if (geom->DimensionModel == GAIA_XY_M)
+	result = gaiaFromGeos_XYM (out);
+    else if (geom->DimensionModel == GAIA_XY_Z_M)
+	result = gaiaFromGeos_XYZM (out);
+    else
+	result = gaiaFromGeos_XY (out);
+    GEOSGeom_destroy (out);
+    if (result == NULL)
+	return NULL;
+    result->Srid = geom->Srid;
+#else
+    if (geom == NULL || boundary == NULL || tolerance == NULL)
+	geom = NULL;		/* silencing stupid compiler warnings */
+#endif
+    return result;
+}
+
+GAIAGEO_DECLARE gaiaGeomCollPtr
+gaiaLargestEmptyCircle_r (const void *p_cache, gaiaGeomCollPtr geom,
+			  gaiaGeomCollPtr boundary, double tolerance)
+{
+/* 
+/ Returns a LINESTRING geometry which represents the minimum diameter of the geometry.
+/ The minimum diameter is defined to be the width of the smallest band that
+/ contains the geometry, where a band is a strip of the plane defined
+/ by two parallel lines. This can be thought of as the smallest hole that 
+/ the geometry can be moved through, with a single rotation.
+*/
+    GEOSGeometry *in;
+    GEOSGeometry *bdry;
+    GEOSGeometry *out;
+    gaiaGeomCollPtr result = NULL;
+    struct splite_internal_cache *cache =
+	(struct splite_internal_cache *) p_cache;
+    GEOSContextHandle_t handle = NULL;
+    if (cache == NULL)
+	return 0;
+    if (cache->magic1 != SPATIALITE_CACHE_MAGIC1
+	|| cache->magic2 != SPATIALITE_CACHE_MAGIC2)
+	return 0;
+    handle = cache->GEOS_handle;
+    if (handle == NULL)
+	return 0;
+    gaiaResetGeosMsg_r (cache);
+    if (!geom || !boundary)
+	return NULL;
+    in = gaiaToGeos_r (cache, geom);
+    bdry = gaiaToGeos_r (cache, boundary);
+    out = GEOSLargestEmptyCircle_r (handle, in, bdry, tolerance);
+    GEOSGeom_destroy (in);
+    GEOSGeom_destroy (bdry);
+
+    if (!out)
+	return NULL;
+    if (geom->DimensionModel == GAIA_XY_Z)
+	result = gaiaFromGeos_XYZ_r (cache, out);
+    else if (geom->DimensionModel == GAIA_XY_M)
+	result = gaiaFromGeos_XYM_r (cache, out);
+    else if (geom->DimensionModel == GAIA_XY_Z_M)
+	result = gaiaFromGeos_XYZM_r (cache, out);
+    else
+	result = gaiaFromGeos_XY_r (cache, out);
+    GEOSGeom_destroy (out);
+    if (result == NULL)
+	return NULL;
+    result->Srid = geom->Srid;
+    return result;
+}
+
+GAIAGEO_DECLARE gaiaGeomCollPtr
+gaiaReducePrecision (gaiaGeomCollPtr geom, double grid_size)
+{
+/* 
+/ Attempts to change the coordinate precision of a geometry.
+*/
+    gaiaGeomCollPtr result = NULL;
+#ifndef GEOS_USE_ONLY_R_API	/* obsolete versions non fully thread-safe */
+    GEOSGeometry *g1;
+    GEOSGeometry *g2;
+    gaiaResetGeosMsg ();
+    if (!geom)
+	return NULL;
+    g1 = gaiaToGeos (geom);
+    g2 = GEOSGeom_setPrecision (g1, grid_size, GEOS_PREC_VALID_OUTPUT);
+    GEOSGeom_destroy (g1);
+    if (!g2)
+	return NULL;
+    if (geom->DimensionModel == GAIA_XY_Z)
+	result = gaiaFromGeos_XYZ (g2);
+    else if (geom->DimensionModel == GAIA_XY_M)
+	result = gaiaFromGeos_XYM (g2);
+    else if (geom->DimensionModel == GAIA_XY_Z_M)
+	result = gaiaFromGeos_XYZM (g2);
+    else
+	result = gaiaFromGeos_XY (g2);
+    GEOSGeom_destroy (g2);
+    if (result == NULL)
+	return NULL;
+    result->Srid = geom->Srid;
+#else
+    if (geom == NULL)
+	geom = NULL;		/* silencing stupid compiler warnings */
+#endif
+    return result;
+}
+
+GAIAGEO_DECLARE gaiaGeomCollPtr
+gaiaReducePrecision_r (const void *p_cache,
+		       gaiaGeomCollPtr geom, double grid_size)
+{
+/* 
+/ Attempts to change the coordinate precision of a geometry.
+*/
+    GEOSGeometry *g1;
+    GEOSGeometry *g2;
+    gaiaGeomCollPtr result;
+    struct splite_internal_cache *cache =
+	(struct splite_internal_cache *) p_cache;
+    GEOSContextHandle_t handle = NULL;
+    if (cache == NULL)
+	return NULL;
+    if (cache->magic1 != SPATIALITE_CACHE_MAGIC1
+	|| cache->magic2 != SPATIALITE_CACHE_MAGIC2)
+	return NULL;
+    handle = cache->GEOS_handle;
+    if (handle == NULL)
+	return NULL;
+    gaiaResetGeosMsg_r (cache);
+    if (!geom)
+	return NULL;
+    g1 = gaiaToGeos_r (cache, geom);
+    g2 = GEOSGeom_setPrecision_r (handle, g1, grid_size,
+				  GEOS_PREC_VALID_OUTPUT);
+    GEOSGeom_destroy_r (handle, g1);
+    if (!g2)
+	return NULL;
+    if (geom->DimensionModel == GAIA_XY_Z)
+	result = gaiaFromGeos_XYZ_r (cache, g2);
+    else if (geom->DimensionModel == GAIA_XY_M)
+	result = gaiaFromGeos_XYM_r (cache, g2);
+    else if (geom->DimensionModel == GAIA_XY_Z_M)
+	result = gaiaFromGeos_XYZM_r (cache, g2);
+    else
+	result = gaiaFromGeos_XY_r (cache, g2);
+    GEOSGeom_destroy_r (handle, g2);
+    if (result == NULL)
+	return NULL;
+    result->Srid = geom->Srid;
+    return result;
+}
+
+#endif /* end GEOS_3100 conditional */
+
+#ifdef GEOS_3110		/* only if GEOS_3110 support is available */
+
+GAIAGEO_DECLARE int
+gaiaHilbertCode (gaiaGeomCollPtr geom1, gaiaGeomCollPtr geom2, int level,
+		 unsigned int *code)
+{
+/* 
+/ Calculate the Hilbert Code of the centroid of a Geometry 
+/ relative to an Extent
+/ Level is the precision of the Hilbert Curve [1-16]
+*/
+    int result = 0;
+#ifndef GEOS_USE_ONLY_R_API	/* obsolete versions non fully thread-safe */
+    GEOSGeometry *g1;
+    GEOSGeometry *g2;
+    gaiaResetGeosMsg ();
+    if (!geom1)
+	return 0;
+    if (!geom2)
+	return 0;
+    g1 = gaiaToGeos (geom1);
+    g2 = gaiaToGeos (geom2);
+    if (level < 1)
+	level = 1;
+    if (level > 16)
+	level = 16;
+    result = GEOSHilbertCode (g1, g2, level, code);
+    GEOSGeom_destroy (g1);
+    GEOSGeom_destroy (g2);
+    return result;
+#else
+    if (geom1 == NULL)
+	geom1 = NULL;		/* silencing stupid compiler warnings */
+    if (geom2 == NULL)
+	geom2 = NULL;		/* silencing stupid compiler warnings */
+#endif
+    return result;
+}
+
+GAIAGEO_DECLARE int
+gaiaHilbertCode_r (const void *p_cache,
+		   gaiaGeomCollPtr geom1, gaiaGeomCollPtr geom2, int level,
+		   unsigned int *code)
+{
+/* 
+/ Calculate the Hilbert Code of the centroid of a Geometry 
+/ relative to an Extent
+/ Level is the precision of the Hilbert Curve [1-16] 
+*/
+    GEOSGeometry *g1;
+    GEOSGeometry *g2;
+    int result = 0;
+    struct splite_internal_cache *cache =
+	(struct splite_internal_cache *) p_cache;
+    GEOSContextHandle_t handle = NULL;
+    if (cache == NULL)
+	return 0;
+    if (cache->magic1 != SPATIALITE_CACHE_MAGIC1
+	|| cache->magic2 != SPATIALITE_CACHE_MAGIC2)
+	return 0;
+    handle = cache->GEOS_handle;
+    if (handle == NULL)
+	return 0;
+    gaiaResetGeosMsg_r (cache);
+    if (!geom1)
+	return 0;
+    if (!geom2)
+	return 0;
+    g1 = gaiaToGeos_r (cache, geom1);
+    g2 = gaiaToGeos_r (cache, geom2);
+    if (level < 1)
+	level = 1;
+    if (level > 16)
+	level = 16;
+    result = GEOSHilbertCode_r (handle, g1, g2, level, code);
+    GEOSGeom_destroy_r (handle, g1);
+    GEOSGeom_destroy_r (handle, g2);
+    return result;
+}
+
+GAIAGEO_DECLARE gaiaGeomCollPtr
+gaiaGeosConcaveHull (gaiaGeomCollPtr geom, double ratio, int allow_holes)
+{
+/* Concave Hull - the GEOS way */
+    gaiaGeomCollPtr result = NULL;
+#ifndef GEOS_USE_ONLY_R_API	/* obsolete versions non fully thread-safe */
+    GEOSGeometry *g1;
+    GEOSGeometry *g2;
+    gaiaResetGeosMsg ();
+    if (!geom)
+	return NULL;
+    if (ratio < 0.0)
+	ratio = 0.0;
+    if (ratio > 1.0)
+	ratio = 1.0;
+    g1 = gaiaToGeos (geom);
+    g2 = GEOSConcaveHull (g1, ratio, allow_holes);
+    GEOSGeom_destroy (g1);
+    if (!g2)
+	return NULL;
+    if (geom->DimensionModel == GAIA_XY_Z)
+	result = gaiaFromGeos_XYZ (g2);
+    else if (geom->DimensionModel == GAIA_XY_M)
+	result = gaiaFromGeos_XYM (g2);
+    else if (geom->DimensionModel == GAIA_XY_Z_M)
+	result = gaiaFromGeos_XYZM (g2);
+    else
+	result = gaiaFromGeos_XY (g2);
+    GEOSGeom_destroy (g2);
+    if (result == NULL)
+	return NULL;
+    result->Srid = geom->Srid;
+    return result;
+#else
+    if (geom1 == NULL)
+	geom1 = NULL;		/* silencing stupid compiler warnings */
+#endif
+    return result;
+}
+
+GAIAGEO_DECLARE gaiaGeomCollPtr
+gaiaGeosConcaveHull_r (const void *p_cache, gaiaGeomCollPtr geom, double ratio,
+		       int allow_holes)
+{
+/* Concave Hull - the GEOS way */
+    GEOSGeometry *g1;
+    GEOSGeometry *g2;
+    gaiaGeomCollPtr result;
+    struct splite_internal_cache *cache =
+	(struct splite_internal_cache *) p_cache;
+    GEOSContextHandle_t handle = NULL;
+    if (cache == NULL)
+	return NULL;
+    if (cache->magic1 != SPATIALITE_CACHE_MAGIC1
+	|| cache->magic2 != SPATIALITE_CACHE_MAGIC2)
+	return NULL;
+    handle = cache->GEOS_handle;
+    if (handle == NULL)
+	return NULL;
+    gaiaResetGeosMsg_r (cache);
+    if (!geom)
+	return NULL;
+    if (ratio < 0.0)
+	ratio = 0.0;
+    if (ratio > 1.0)
+	ratio = 1.0;
+    g1 = gaiaToGeos_r (cache, geom);
+    g2 = GEOSConcaveHull_r (handle, g1, ratio, allow_holes);
+    GEOSGeom_destroy_r (handle, g1);
+    if (!g2)
+	return NULL;
+    if (geom->DimensionModel == GAIA_XY_Z)
+	result = gaiaFromGeos_XYZ_r (cache, g2);
+    else if (geom->DimensionModel == GAIA_XY_M)
+	result = gaiaFromGeos_XYM_r (cache, g2);
+    else if (geom->DimensionModel == GAIA_XY_Z_M)
+	result = gaiaFromGeos_XYZM_r (cache, g2);
+    else
+	result = gaiaFromGeos_XY_r (cache, g2);
+    GEOSGeom_destroy_r (handle, g2);
+    if (result == NULL)
+	return NULL;
+    result->Srid = geom->Srid;
+    return result;
+}
+
+#endif /* end GEOS_3110 conditional */
 
 static gaiaGeomCollPtr
 geom_as_lines (gaiaGeomCollPtr geom)

@@ -2,7 +2,7 @@
 
  virtualXLc -- SQLite3 extension [VIRTUAL TABLE accessing .XLS]
 
- version 5.0, 2020 August 1
+ version 5.1.0, 2023 August 4
 
  Author: Sandro Furieri a.furieri@lqt.it
 
@@ -24,7 +24,7 @@ The Original Code is the SpatiaLite library
 
 The Initial Developer of the Original Code is Alessandro Furieri
  
-Portions created by the Initial Developer are Copyright (C) 2008-2021
+Portions created by the Initial Developer are Copyright (C) 2008-2023
 the Initial Developer. All Rights Reserved.
 
 Contributor(s):
@@ -112,6 +112,34 @@ typedef struct VirtualXLCursorStruct
 typedef VirtualXLCursor *VirtualXLCursorPtr;
 
 static int
+is_xlsx (const char *path)
+{
+/* testing for a file suffix ".xlsx" */
+    char suffix[8];
+    int len = strlen (path);
+    if (len < 6)
+	return 0;
+    strcpy (suffix, path + len - 5);
+    if (strcasecmp (suffix, ".xlsx") == 0)
+	return 1;
+    return 0;
+}
+
+static int
+is_ods (const char *path)
+{
+/* testing for a file suffix ".ods" */
+    char suffix[8];
+    int len = strlen (path);
+    if (len < 5)
+	return 0;
+    strcpy (suffix, path + len - 4);
+    if (strcasecmp (suffix, ".ods") == 0)
+	return 1;
+    return 0;
+}
+
+static int
 vXL_create (sqlite3 * db, void *pAux, int argc, const char *const *argv,
 	    sqlite3_vtab ** ppVTab, char **pzErr)
 {
@@ -121,13 +149,16 @@ vXL_create (sqlite3 * db, void *pAux, int argc, const char *const *argv,
     char path[2048];
     char firstLineTitles = 'N';
     unsigned int worksheet = 0;
-    unsigned int max_worksheet;
+    unsigned int max_worksheet = 0;
     unsigned int info;
     unsigned int rows;
     unsigned short columns;
     unsigned short col;
     int len;
     int ret;
+    int is_xls_source = 0;
+    int is_xlsx_source = 0;
+    int is_ods_source = 0;
     const void *handle;
     const char *pPath = NULL;
     char *xname;
@@ -176,8 +207,24 @@ vXL_create (sqlite3 * db, void *pAux, int argc, const char *const *argv,
     p_vt->rows = 0;
     p_vt->columns = 0;
     p_vt->firstLineTitles = firstLineTitles;
-/* opening the .XLS file [Workbook] */
-    ret = freexl_open (path, &handle);
+    if (is_xlsx (path))
+      {
+	  /* opening the .XLSX file [Workbook] */
+	  ret = freexl_open_xlsx (path, &handle);
+	  is_xlsx_source = 1;
+      }
+    else if (is_ods (path))
+      {
+	  /* opening the .ODS file [Workbook] */
+	  ret = freexl_open_ods (path, &handle);
+	  is_ods_source = 1;
+      }
+    else
+      {
+	  /* opening the .XLS file [Workbook] */
+	  ret = freexl_open (path, &handle);
+	  is_xls_source = 1;
+      }
     if (ret != FREEXL_OK)
       {
 	  /* free memory */
@@ -198,30 +245,44 @@ vXL_create (sqlite3 * db, void *pAux, int argc, const char *const *argv,
 	  *ppVTab = (sqlite3_vtab *) p_vt;
 	  return SQLITE_OK;
       }
-/* checking if Password Protected [obfuscated] */
-    freexl_get_info (handle, FREEXL_BIFF_PASSWORD, &info);
-    if (info != FREEXL_BIFF_PLAIN)
+    if (is_xls_source)
       {
-	  /* free memory */
-	  freexl_close (handle);
-	  /* Obfuscated: creating a stupid default table */
-	  xname = gaiaDoubleQuotedSql (argv[2]);
-	  sql = sqlite3_mprintf ("CREATE TABLE \"%s\" (PKUID INTEGER)", xname);
-	  free (xname);
-	  if (sqlite3_declare_vtab (db, sql) != SQLITE_OK)
+	  /* checking if Password Protected [obfuscated] */
+	  freexl_get_info (handle, FREEXL_BIFF_PASSWORD, &info);
+	  if (info != FREEXL_BIFF_PLAIN)
 	    {
+		/* free memory */
+		freexl_close (handle);
+		/* Obfuscated: creating a stupid default table */
+		xname = gaiaDoubleQuotedSql (argv[2]);
+		sql =
+		    sqlite3_mprintf ("CREATE TABLE \"%s\" (PKUID INTEGER)",
+				     xname);
+		free (xname);
+		if (sqlite3_declare_vtab (db, sql) != SQLITE_OK)
+		  {
+		      sqlite3_free (sql);
+		      *pzErr =
+			  sqlite3_mprintf
+			  ("[VirtualXL module] Password protected [obfuscated] .xls\n");
+		      return SQLITE_ERROR;
+		  }
 		sqlite3_free (sql);
-		*pzErr =
-		    sqlite3_mprintf
-		    ("[VirtualXL module] Password protected [obfuscated] .xls\n");
-		return SQLITE_ERROR;
+		*ppVTab = (sqlite3_vtab *) p_vt;
+		return SQLITE_OK;
 	    }
-	  sqlite3_free (sql);
-	  *ppVTab = (sqlite3_vtab *) p_vt;
-	  return SQLITE_OK;
+	  /* querying how many Worksheets are there */
+	  ret =
+	      freexl_get_info (handle, FREEXL_BIFF_SHEET_COUNT, &max_worksheet);
+	  if (ret != FREEXL_OK)
+	      max_worksheet = 0;
       }
-/* querying how many Worksheets are there */
-    freexl_get_info (handle, FREEXL_BIFF_SHEET_COUNT, &max_worksheet);
+    if (is_xlsx_source || is_ods_source)
+      {
+	  ret = freexl_get_worksheets_count (handle, &max_worksheet);
+	  if (ret != FREEXL_OK)
+	      max_worksheet = 0;
+      }
     if (worksheet >= max_worksheet)
       {
 	  /* free memory */
@@ -353,7 +414,21 @@ vXL_best_index (sqlite3_vtab * pVTab, sqlite3_index_info * pIndex)
     *str = '\0';
     for (i = 0; i < pIndex->nConstraint; i++)
       {
-	  if (pIndex->aConstraint[i].usable)
+	  if (pIndex->aConstraint[i].usable &&
+	      /* 2022-02-23 - patch for SQLite 3.38 proposed by Even Rouault */
+	      (pIndex->aConstraint[i].op == SQLITE_INDEX_CONSTRAINT_EQ ||
+	       pIndex->aConstraint[i].op == SQLITE_INDEX_CONSTRAINT_GT ||
+	       pIndex->aConstraint[i].op == SQLITE_INDEX_CONSTRAINT_LE ||
+	       pIndex->aConstraint[i].op == SQLITE_INDEX_CONSTRAINT_LT ||
+	       pIndex->aConstraint[i].op == SQLITE_INDEX_CONSTRAINT_GE ||
+	       pIndex->aConstraint[i].op == SQLITE_INDEX_CONSTRAINT_NE ||
+	       pIndex->aConstraint[i].op == SQLITE_INDEX_CONSTRAINT_ISNOTNULL ||
+	       pIndex->aConstraint[i].op == SQLITE_INDEX_CONSTRAINT_ISNULL
+#ifdef HAVE_DECL_SQLITE_INDEX_CONSTRAINT_LIKE
+	       || pIndex->aConstraint[i].op == SQLITE_INDEX_CONSTRAINT_LIKE
+#endif
+	      ))
+	      /* 2022-02-23 - end patch Even Rouault */
 	    {
 		iArg++;
 		pIndex->aConstraintUsage[i].argvIndex = iArg;

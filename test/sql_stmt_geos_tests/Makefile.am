@@ -153,6 +153,21 @@ EXTRA_DIST = bdmpolyfromtext10.testcase \
 	distance7.testcase \
 	distance8.testcase \
 	distance9.testcase \
+	distwithin10.testcase \
+	distwithin11.testcase \
+	distwithin12.testcase \
+	distwithin13.testcase \
+	distwithin14.testcase \
+	distwithin15.testcase \
+	distwithin1.testcase \
+	distwithin2.testcase \
+	distwithin3.testcase \
+	distwithin4.testcase \
+	distwithin5.testcase \
+	distwithin6.testcase \
+	distwithin7.testcase \
+	distwithin8.testcase \
+	distwithin9.testcase \
 	drapeline1.testcase \
 	drapeline2.testcase \
 	drapeline3.testcase \
@@ -260,12 +275,10 @@ EXTRA_DIST = bdmpolyfromtext10.testcase \
 	isvaliddetail2.testcase \
 	isvaliddetail3.testcase \
 	isvaliddetail4.testcase \
-	isvaliddetail5.testcase \
 	isvalidreason1.testcase \
 	isvalidreason2.testcase \
 	isvalidreason3.testcase \
 	isvalidreason4.testcase \
-	isvalidreason5.testcase \
 	pointonsurface1.testcase \
 	pointonsurface3.testcase \
 	pointonsurface4.testcase \
@@ -441,10 +454,6 @@ EXTRA_DIST = bdmpolyfromtext10.testcase \
 	union15.testcase \
 	union16.testcase \
 	union1.testcase \
-	union21.testcase \
-	union22.testcase \
-	union23.testcase \
-	union24.testcase \
 	union25.testcase \
 	union26.testcase \
 	union27.testcase \
@@ -616,7 +625,6 @@ EXTRA_DIST = bdmpolyfromtext10.testcase \
 	linemerge6.testcase \
 	linemerge7.testcase \
 	linemerge8.testcase \
-	linemerge9.testcase \
 	linesnodes10.testcase \
 	linesnodes11.testcase \
 	linesnodes12.testcase \
@@ -692,17 +700,11 @@ EXTRA_DIST = bdmpolyfromtext10.testcase \
 	m_interpolatepoint7.testcase \
 	m_interpolatepoint8.testcase \
 	m_interpolatepoint9.testcase \
-	offsetcurve10.testcase \
 	offsetcurve11.testcase \
-	offsetcurve12.testcase \
-	offsetcurve13.testcase \
-	offsetcurve14.testcase \
 	offsetcurve1.testcase \
 	offsetcurve2.testcase \
 	offsetcurve3.testcase \
-	offsetcurve4.testcase \
 	offsetcurve5.testcase \
-	offsetcurve6.testcase \
 	offsetcurve7.testcase \
 	offsetcurve8.testcase \
 	offsetcurve9.testcase \

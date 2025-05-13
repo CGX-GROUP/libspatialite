@@ -1,7 +1,7 @@
 /* 
  spatialite.h -- Gaia spatial support for SQLite 
   
- version 5.0, 2020 August 1
+ version 5.1.0, 2023 August 4
 
  Author: Sandro Furieri a.furieri@lqt.it
 
@@ -23,7 +23,7 @@ The Original Code is the SpatiaLite library
 
 The Initial Developer of the Original Code is Alessandro Furieri
  
-Portions created by the Initial Developer are Copyright (C) 2008-2021
+Portions created by the Initial Developer are Copyright (C) 2008-2023
 the Initial Developer. All Rights Reserved.
 
 Contributor(s):
@@ -94,6 +94,19 @@ extern "C"
 
 #define SPATIALITE_CACHE_MAGIC1	0xf8
 #define SPATIALITE_CACHE_MAGIC2 0x8f
+
+#define MULTIPLE_POINTS_TABLE	0x10
+#define MULTIPLE_POINTS_POINT	0x20
+#define MULTIPLE_POINTS_PK		0x40
+#define MULTIPLE_POINTS_POS		0x80
+#define MULTIPLE_POINTS_NOGEOM	0x41
+#define MULTIPLE_POINTS_SRID	0x42
+#define MULTIPLE_POINTS_NOPOINT	0x44
+#define MULTIPLE_POINTS_DIMS	0x48
+#define MULTIPLE_POINTS_SQL		0x81
+#define MULTIPLE_POINTS_DUPL	0x82
+#define MULTIPLE_POINTS_GEOM	0x84
+#define MULTIPLE_POINTS_OK		0xff
 
     struct vxpath_ns
     {
@@ -639,6 +652,9 @@ extern "C"
     SPATIALITE_PRIVATE int createIsoMetadataTables (void *p_sqlite,
 						    int relaxed);
 
+    SPATIALITE_PRIVATE int recreateIsoMetaRefsTriggers (void *p_sqlite,
+							int enable_eval);
+
     SPATIALITE_PRIVATE int get_iso_metadata_id (void *p_sqlite,
 						const char *fileIdentifier,
 						void *p_id);
@@ -730,6 +746,14 @@ extern "C"
 							  const char *copyright,
 							  const char *license);
 
+    SPATIALITE_PRIVATE int set_vector_coverage_visibility_range (void *p_sqlite,
+								 const char
+								 *coverage_name,
+								 double
+								 min_scale,
+								 double
+								 max_scale);
+
     SPATIALITE_PRIVATE int register_vector_coverage_srid (void *p_sqlite,
 							  const char
 							  *coverage_name,
@@ -791,7 +815,9 @@ extern "C"
 						int tile_height,
 						const char *bgcolor,
 						int is_queryable,
-						const char *getfeatureinfo_url);
+						const char *getfeatureinfo_url,
+						int cascaded, double min_scale,
+						double max_scale);
 
     SPATIALITE_PRIVATE int unregister_wms_getmap (void *p_sqlite,
 						  const char *url,
@@ -852,6 +878,14 @@ extern "C"
 						    const char *layer_name,
 						    const char *key,
 						    const char *value);
+
+    SPATIALITE_PRIVATE int register_wms_style (void *p_sqlite,
+					       const char *url,
+					       const char *layer_name,
+					       const char *style_name,
+					       const char *style_title,
+					       const char *style_abstract,
+					       int is_default);
 
     SPATIALITE_PRIVATE int register_wms_srs (void *p_sqlite,
 					     const char *url,
@@ -1488,6 +1522,8 @@ extern "C"
 
     SPATIALITE_PRIVATE void finalize_topologies (const void *p_cache);
 
+    SPATIALITE_PRIVATE int create_knn2 (sqlite3 * sqlite);
+
     SPATIALITE_PRIVATE int create_data_licenses (sqlite3 * sqlite);
 
     SPATIALITE_PRIVATE int create_geometry_columns_time (sqlite3 * sqlite);
@@ -1540,6 +1576,17 @@ extern "C"
 						      int relaxed,
 						      int transaction,
 						      char **err_msg);
+
+    SPATIALITE_PRIVATE int createMissingRasterlite2Columns (sqlite3 *
+							    db_handle);
+
+    SPATIALITE_PRIVATE int do_set_multiple_points (sqlite3 * db_handle,
+						   void *line,
+						   sqlite3_int64 pk_value,
+						   const char *table_name,
+						   const char *point_name,
+						   const char *pk_name,
+						   const char *pos_name);
 
 #ifdef __cplusplus
 }

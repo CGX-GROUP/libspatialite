@@ -2,7 +2,7 @@
 
  extra_tables.c -- Creating all SLD/SE and ISO Metadata extra tables
 
- version 5.0, 2020 August 1
+ version 5.1.0, 2023 August 4
 
  Author: Sandro Furieri a.furieri@lqt.it
 
@@ -24,7 +24,7 @@ The Original Code is the SpatiaLite library
 
 The Initial Developer of the Original Code is Alessandro Furieri
  
-Portions created by the Initial Developer are Copyright (C) 2008-2021
+Portions created by the Initial Developer are Copyright (C) 2008-2023
 the Initial Developer. All Rights Reserved.
 
 Contributor(s):
@@ -2020,6 +2020,9 @@ create_raster_coverages (sqlite3 * sqlite)
 	"section_md5 INTEGER NOT NULL,\n"
 	"section_summary INTEGER NOT NULL,\n"
 	"is_queryable INTEGER NOT NULL,\n"
+	"is_opaque INTEGER NOT NULL DEFAULT 0,\n"
+	"min_scale DOUBLE,\n"
+	"max_scale DOUBLE,\n"
 	"red_band_index INTEGER,\n"
 	"green_band_index INTEGER,\n"
 	"blue_band_index INTEGER,\n"
@@ -2081,6 +2084,7 @@ create_raster_coverages (sqlite3 * sqlite)
 	"c.mixed_resolutions AS mixed_resolutions, "
 	"c.section_paths AS section_paths, c.section_md5 AS section_md5, "
 	"c.section_summary AS section_summary, c.is_queryable AS is_queryable, "
+	"c.is_opaque AS is_opaque, c.min_scale AS min_scale, c.max_scale AS max_scale, "
 	"c.red_band_index, c.green_band_index, c.blue_band_index, "
 	"c.nir_band_index, c.enable_auto_ndvi\n"
 	"FROM raster_coverages AS c\n"
@@ -2103,6 +2107,7 @@ create_raster_coverages (sqlite3 * sqlite)
 	"c.mixed_resolutions AS mixed_resolutions, "
 	"c.section_paths AS section_paths, c.section_md5 AS section_md5, "
 	"c.section_summary AS section_summary, c.is_queryable AS is_queryable, "
+	"c.is_opaque AS is_opaque, c.min_scale AS min_scale, c.max_scale AS max_scale, "
 	"c.red_band_index, c.green_band_index, c.blue_band_index, "
 	"c.nir_band_index, c.enable_auto_ndvi\n"
 	"FROM raster_coverages AS c\n"
@@ -2777,6 +2782,8 @@ create_vector_coverages (sqlite3 * sqlite)
 	"abstract TEXT NOT NULL DEFAULT '*** missing Abstract ***',\n"
 	"is_queryable INTEGER NOT NULL,\n"
 	"is_editable INTEGER NOT NULL,\n"
+	"min_scale DOUBLE,\n"
+	"max_scale DOUBLE,\n"
 	"copyright TEXT NOT NULL DEFAULT '*** unknown ***',\n"
 	"license INTEGER NOT NULL DEFAULT 0,\n"
 	"CONSTRAINT fk_vc_gc FOREIGN KEY (f_table_name, f_geometry_column) "
@@ -2835,7 +2842,8 @@ create_vector_coverages (sqlite3 * sqlite)
 /* creating the vector_coverages_ref_sys view */
     sql = "CREATE VIEW IF NOT EXISTS vector_coverages_ref_sys AS\n"
 	"SELECT v.coverage_name AS coverage_name, v.title AS title, v.abstract AS abstract, "
-	"v.is_queryable AS is_queryable, v.geo_minx AS geo_minx, v.geo_miny AS geo_miny, "
+	"v.is_queryable AS is_queryable, v.min_scale AS min_scale, v.max_scale AS max_scale, "
+	"v.geo_minx AS geo_minx, v.geo_miny AS geo_miny, "
 	"v.geo_maxx AS geo_maxx, v.geo_maxy AS geo_maxy, v.extent_minx AS extent_minx, "
 	"v.extent_miny AS extent_miny, v.extent_maxx AS extent_maxx, v.extent_maxy AS extent_maxy, "
 	"s.srid AS srid, 1 AS native_srid, s.auth_name AS auth_name, s.auth_srid AS auth_srid, "
@@ -2847,7 +2855,8 @@ create_vector_coverages (sqlite3 * sqlite)
 	"LEFT JOIN spatial_ref_sys AS s ON (x.srid = s.srid)\n"
 	"UNION\n"
 	"SELECT v.coverage_name AS coverage_name, v.title AS title, v.abstract AS abstract, "
-	"v.is_queryable AS is_queryable, v.geo_minx AS geo_minx, v.geo_miny AS geo_miny, "
+	"v.is_queryable AS is_queryable, v.min_scale AS min_scale, v.max_scale AS max_scale, "
+	"v.geo_minx AS geo_minx, v.geo_miny AS geo_miny, "
 	"v.geo_maxx AS geo_maxx, v.geo_maxy AS geo_maxy, v.extent_minx AS extent_minx, "
 	"v.extent_miny AS extent_miny, v.extent_maxx AS extent_maxx, v.extent_maxy AS extent_maxy, "
 	"s.srid AS srid, 1 AS native_srid, s.auth_name AS auth_name, s.auth_srid AS auth_srid, "
@@ -2861,7 +2870,8 @@ create_vector_coverages (sqlite3 * sqlite)
 	"LEFT JOIN spatial_ref_sys AS s ON (x.srid = s.srid)\n"
 	"UNION\n"
 	"SELECT v.coverage_name AS coverage_name, v.title AS title, v.abstract AS abstract, "
-	"v.is_queryable AS is_queryable, v.geo_minx AS geo_minx, v.geo_miny AS geo_miny, "
+	"v.is_queryable AS is_queryable, v.min_scale AS min_scale, v.max_scale AS max_scale, "
+	"v.geo_minx AS geo_minx, v.geo_miny AS geo_miny, "
 	"v.geo_maxx AS geo_maxx, v.geo_maxy AS geo_maxy, v.extent_minx AS extent_minx, "
 	"v.extent_miny AS extent_miny, v.extent_maxx AS extent_maxx, v.extent_maxy AS extent_maxy, "
 	"s.srid AS srid, 1 AS native_srid, s.auth_name AS auth_name, s.auth_srid AS auth_srid, "
@@ -2873,7 +2883,8 @@ create_vector_coverages (sqlite3 * sqlite)
 	"LEFT JOIN spatial_ref_sys AS s ON (x.srid = s.srid)\n"
 	"UNION\n"
 	"SELECT v.coverage_name AS coverage_name, v.title AS title, v.abstract AS abstract, "
-	"v.is_queryable AS is_queryable, v.geo_minx AS geo_minx, v.geo_miny AS geo_miny, "
+	"v.is_queryable AS is_queryable, v.min_scale AS min_scale, v.max_scale AS max_scale, "
+	"v.geo_minx AS geo_minx, v.geo_miny AS geo_miny, "
 	"v.geo_maxx AS geo_maxx, v.geo_maxy AS geo_maxy, v.extent_minx AS extent_minx, "
 	"v.extent_miny AS extent_miny, v.extent_maxx AS extent_maxx, v.extent_maxy AS extent_maxy, "
 	"s.srid AS srid, 1 AS native_srid, s.auth_name AS auth_name, s.auth_srid AS auth_srid, "
@@ -2883,7 +2894,8 @@ create_vector_coverages (sqlite3 * sqlite)
 	"LEFT JOIN spatial_ref_sys AS s ON (x.srid = s.srid)\n"
 	"UNION\n"
 	"SELECT v.coverage_name AS coverage_name, v.title AS title, v.abstract AS abstract, "
-	"v.is_queryable AS is_queryable, v.geo_minx AS geo_minx, v.geo_miny AS geo_miny, "
+	"v.is_queryable AS is_queryable, v.min_scale AS min_scale, v.max_scale AS max_scale, "
+	"v.geo_minx AS geo_minx, v.geo_miny AS geo_miny, "
 	"v.geo_maxx AS geo_maxx, v.geo_maxy AS geo_maxy, v.extent_minx AS extent_minx, "
 	"v.extent_miny AS extent_miny, v.extent_maxx AS extent_maxx, v.extent_maxy AS extent_maxy, "
 	"s.srid AS srid, 1 AS native_srid, s.auth_name AS auth_name, s.auth_srid AS auth_srid, "
@@ -2893,7 +2905,8 @@ create_vector_coverages (sqlite3 * sqlite)
 	"LEFT JOIN spatial_ref_sys AS s ON (x.srid = s.srid)\n"
 	"UNION\n"
 	"SELECT v.coverage_name AS coverage_name, v.title AS title, v.abstract AS abstract, "
-	"v.is_queryable AS is_queryable, v.geo_minx AS geo_minx, v.geo_miny AS geo_miny, "
+	"v.is_queryable AS is_queryable, v.min_scale AS min_scale, v.max_scale AS max_scale, "
+	"v.geo_minx AS geo_minx, v.geo_miny AS geo_miny, "
 	"v.geo_maxx AS geo_maxx, v.geo_maxy AS geo_maxy, x.extent_minx AS extent_minx, "
 	"x.extent_miny AS extent_miny, x.extent_maxx AS extent_maxx, x.extent_maxy AS extent_maxy, "
 	"s.srid AS srid, 0 AS native_srid, s.auth_name AS auth_name, s.auth_srid AS auth_srid, "
@@ -3160,6 +3173,9 @@ create_wms_tables (sqlite3 * sqlite)
 	"is_queryable INTEGER NOT NULL CHECK (is_queryable IN (0, 1)),\n"
 	"getfeatureinfo_url TEXT,\n"
 	"bgcolor TEXT,\n"
+	"cascaded INTEGER,\n"
+	"min_scale DOUBLE,\n"
+	"max_scale DOUBLE,\n"
 	"tiled INTEGER NOT NULL CHECK (tiled IN (0, 1)),\n"
 	"tile_width INTEGER NOT NULL CHECK (tile_width BETWEEN 256 AND 5000),\n"
 	"tile_height INTEGER NOT NULL CHECK (tile_width BETWEEN 256 AND 5000),\n"
@@ -3191,6 +3207,8 @@ create_wms_tables (sqlite3 * sqlite)
 	"parent_id INTEGER NOT NULL,\n"
 	"key TEXT NOT NULL CHECK (Lower(key) IN ('version', 'format', 'style')),\n"
 	"value TEXT NOT NULL,\n"
+	"style_title TEXT,\n"
+	"style_abstract TEXT,\n"
 	"is_default INTEGER NOT NULL CHECK (is_default IN (0, 1)),\n"
 	"CONSTRAINT fk_wms_settings FOREIGN KEY (parent_id) "
 	"REFERENCES wms_getmap (id) ON DELETE CASCADE)";
@@ -4700,6 +4718,78 @@ create_iso_metadata (sqlite3 * sqlite, int relaxed)
     return 1;
 }
 
+static int
+iso_reference_triggers (sqlite3 * sqlite, int enable_eval)
+{
+/* creating the ISO_metadata_reference_row_id_value_XXXX triggers */
+    char *sql;
+    int ret;
+    char *err_msg = NULL;
+    if (enable_eval)
+      {
+	  /* full check - requires eval() and thus SPATIALITE_SECURITY=RELAXED */
+	  sql = "CREATE TRIGGER 'ISO_metadata_reference_row_id_value_insert'\n"
+	      "BEFORE INSERT ON 'ISO_metadata_reference'\nFOR EACH ROW BEGIN\n"
+	      "SELECT RAISE(ROLLBACK, 'insert on ISO_table ISO_metadata_reference violates constraint: "
+	      "row_id_value must be 0 when reference_scope is ''table'' or ''column''')\n"
+	      "WHERE NEW.reference_scope IN ('table','column') AND NEW.row_id_value <> 0;\n"
+	      "SELECT RAISE(ROLLBACK, 'insert on table ISO_metadata_reference violates constraint: "
+	      "row_id_value must exist in specified table when reference_scope is ''row'' or ''row/col''')\n"
+	      "WHERE NEW.reference_scope IN ('row','row/col') AND\n"
+	      "(SELECT eval('SELECT rowid FROM ' || NEW.table_name || "
+	      "' WHERE rowid = ' || NEW.row_id_value)) IS NULL;\nEND";
+      }
+    else
+      {
+	  /* partial check ignoring "row_id_value" */
+	  sql = "CREATE TRIGGER 'ISO_metadata_reference_row_id_value_insert'\n"
+	      "BEFORE INSERT ON 'ISO_metadata_reference'\nFOR EACH ROW BEGIN\n"
+	      "SELECT RAISE(ROLLBACK, 'insert on ISO_table ISO_metadata_reference violates constraint: "
+	      "row_id_value must be 0 when reference_scope is ''table'' or ''column''')\n"
+	      "WHERE NEW.reference_scope IN ('table','column') AND NEW.row_id_value <> 0;\nEND";
+      }
+    ret = sqlite3_exec (sqlite, sql, NULL, NULL, &err_msg);
+    if (ret != SQLITE_OK)
+      {
+	  spatialite_e ("SQL error: %s\n", err_msg);
+	  sqlite3_free (err_msg);
+	  return 0;
+      }
+    if (enable_eval)
+      {
+	  /* full check - requires eval() and thus SPATIALITE_SECURITY=RELAXED */
+	  sql = "CREATE TRIGGER 'ISO_metadata_reference_row_id_value_update'\n"
+	      "BEFORE UPDATE OF 'row_id_value' ON 'ISO_metadata_reference'\n"
+	      "FOR EACH ROW BEGIN\n"
+	      "SELECT RAISE(ROLLBACK, 'update on table ISO_metadata_reference violates constraint: "
+	      "row_id_value must be 0 when reference_scope is ''table'' or ''column''')\n"
+	      "WHERE NEW.reference_scope IN ('table','column') AND NEW.row_id_value <> 0;\n"
+	      "SELECT RAISE(ROLLBACK, 'update on ISO_table metadata_reference violates constraint: "
+	      "row_id_value must exist in specified table when reference_scope is ''row'' or ''row/col''')\n"
+	      "WHERE NEW.reference_scope IN ('row','row/col') AND\n"
+	      "(SELECT eval('SELECT rowid FROM ' || NEW.table_name || "
+	      "' WHERE rowid = ' || NEW.row_id_value)) IS NULL;\nEND";
+      }
+    else
+      {
+	  /* partial check ignoring "row_id_value" */
+	  sql = "CREATE TRIGGER 'ISO_metadata_reference_row_id_value_update'\n"
+	      "BEFORE UPDATE OF 'row_id_value' ON 'ISO_metadata_reference'\n"
+	      "FOR EACH ROW BEGIN\n"
+	      "SELECT RAISE(ROLLBACK, 'update on table ISO_metadata_reference violates constraint: "
+	      "row_id_value must be 0 when reference_scope is ''table'' or ''column''')\n"
+	      "WHERE NEW.reference_scope IN ('table','column') AND NEW.row_id_value <> 0;\nEND";
+      }
+    ret = sqlite3_exec (sqlite, sql, NULL, NULL, &err_msg);
+    if (ret != SQLITE_OK)
+      {
+	  spatialite_e ("SQL error: %s\n", err_msg);
+	  sqlite3_free (err_msg);
+	  return 0;
+      }
+    return 1;
+}
+
 SPATIALITE_PRIVATE int
 create_iso_metadata_reference (sqlite3 * sqlite)
 {
@@ -4781,46 +4871,16 @@ create_iso_metadata_reference (sqlite3 * sqlite)
 	  sqlite3_free (err_msg);
 	  return 0;
       }
-    sql = "CREATE TRIGGER 'ISO_metadata_reference_row_id_value_insert'\n"
-	"BEFORE INSERT ON 'ISO_metadata_reference'\nFOR EACH ROW BEGIN\n"
-	"SELECT RAISE(ROLLBACK, 'insert on ISO_table ISO_metadata_reference violates constraint: "
-	"row_id_value must be 0 when reference_scope is ''table'' or ''column''')\n"
-	"WHERE NEW.reference_scope IN ('table','column') AND NEW.row_id_value <> 0;\n"
-	"SELECT RAISE(ROLLBACK, 'insert on table ISO_metadata_reference violates constraint: "
-	"row_id_value must exist in specified table when reference_scope is ''row'' or ''row/col''')\n"
-	"WHERE NEW.reference_scope IN ('row','row/col') AND NOT EXISTS\n"
-	"(SELECT rowid FROM (SELECT NEW.table_name AS table_name) "
-	"WHERE rowid = NEW.row_id_value);\nEND";
-    ret = sqlite3_exec (sqlite, sql, NULL, NULL, &err_msg);
-    if (ret != SQLITE_OK)
-      {
-	  spatialite_e ("SQL error: %s\n", err_msg);
-	  sqlite3_free (err_msg);
-	  return 0;
-      }
-    sql = "CREATE TRIGGER 'ISO_metadata_reference_row_id_value_update'\n"
-	"BEFORE UPDATE OF 'row_id_value' ON 'ISO_metadata_reference'\n"
-	"FOR EACH ROW BEGIN\n"
-	"SELECT RAISE(ROLLBACK, 'update on table ISO_metadata_reference violates constraint: "
-	"row_id_value must be 0 when reference_scope is ''table'' or ''column''')\n"
-	"WHERE NEW.reference_scope IN ('table','column') AND NEW.row_id_value <> 0;\n"
-	"SELECT RAISE(ROLLBACK, 'update on ISO_table metadata_reference violates constraint: "
-	"row_id_value must exist in specified table when reference_scope is ''row'' or ''row/col''')\n"
-	"WHERE NEW.reference_scope IN ('row','row/col') AND NOT EXISTS\n"
-	"(SELECT rowid FROM (SELECT NEW.table_name AS table_name) "
-	"WHERE rowid = NEW.row_id_value);\nEND";
-    ret = sqlite3_exec (sqlite, sql, NULL, NULL, &err_msg);
-    if (ret != SQLITE_OK)
-      {
-	  spatialite_e ("SQL error: %s\n", err_msg);
-	  sqlite3_free (err_msg);
-	  return 0;
-      }
+
+/* creating ISO_metadata_reference_row_id_value_XXXX triggers */
+    if (!iso_reference_triggers (sqlite, 0))
+	return 0;
+
     sql = "CREATE TRIGGER 'ISO_metadata_reference_timestamp_insert'\n"
 	"BEFORE INSERT ON 'ISO_metadata_reference'\nFOR EACH ROW BEGIN\n"
 	"SELECT RAISE(ROLLBACK, 'insert on table ISO_metadata_reference violates constraint: "
 	"timestamp must be a valid time in ISO 8601 ''yyyy-mm-ddThh:mm:ss.cccZ'' form')\n"
-	"WHERE NOT (NEW.timestamp GLOB'[1-2][0-9][0-9][0-9]-[0-1][0-9]-[1-3][0-9]T"
+	"WHERE NOT (NEW.timestamp GLOB'[1-2][0-9][0-9][0-9]-[0-1][0-9]-[0-3][0-9]T"
 	"[0-2][0-9]:[0-5][0-9]:[0-5][0-9].[0-9][0-9][0-9]Z' AND strftime('%s',"
 	"NEW.timestamp) NOT NULL);\nEND";
     ret = sqlite3_exec (sqlite, sql, NULL, NULL, &err_msg);
@@ -4835,7 +4895,7 @@ create_iso_metadata_reference (sqlite3 * sqlite)
 	"FOR EACH ROW BEGIN\n"
 	"SELECT RAISE(ROLLBACK, 'update on table ISO_metadata_reference violates constraint: "
 	"timestamp must be a valid time in ISO 8601 ''yyyy-mm-ddThh:mm:ss.cccZ'' form')\n"
-	"WHERE NOT (NEW.timestamp GLOB'[1-2][0-9][0-9][0-9]-[0-1][0-9]-[1-3][0-9]T"
+	"WHERE NOT (NEW.timestamp GLOB'[1-2][0-9][0-9][0-9]-[0-1][0-9]-[0-3][0-9]T"
 	"[0-2][0-9]:[0-5][0-9]:[0-5][0-9].[0-9][0-9][0-9]Z' AND strftime('%s',"
 	"NEW.timestamp) NOT NULL);\nEND";
     ret = sqlite3_exec (sqlite, sql, NULL, NULL, &err_msg);
@@ -4868,6 +4928,52 @@ create_iso_metadata_reference (sqlite3 * sqlite)
 	  sqlite3_free (err_msg);
 	  return 0;
       }
+    return 1;
+}
+
+SPATIALITE_PRIVATE int
+recreateIsoMetaRefsTriggers (void *p_sqlite, int enable_eval)
+{
+/* recreates both ISO Metadata Refernce Triggers by enabling/disabling eval() */
+    sqlite3 *sqlite = (sqlite3 *) p_sqlite;
+    int count = 0;
+    const char *sql;
+    int ret;
+    int i;
+    char **results;
+    int rows;
+    int columns;
+
+/* checking if the table ISO_metadata_reference do really exist */
+    sql = "SELECT Count(*) FROM sqlite_master WHERE type = 'table' "
+	"AND Upper(tbl_name) = Upper('ISO_metadata_reference')";
+    ret = sqlite3_get_table (sqlite, sql, &results, &rows, &columns, NULL);
+    if (ret != SQLITE_OK)
+	return 0;
+    if (rows < 1)
+	;
+    else
+      {
+	  for (i = 1; i <= rows; i++)
+	      count++;
+      }
+    sqlite3_free_table (results);
+    if (!count)
+	return 0;
+
+/* dropping the currently installed Triggers (if they exist) */
+    sql = "DROP TRIGGER IF EXISTS ISO_metadata_reference_row_id_value_insert";
+    ret = sqlite3_exec (sqlite, sql, NULL, NULL, NULL);
+    if (ret != SQLITE_OK)
+	return 0;
+    sql = "DROP TRIGGER IF EXISTS ISO_metadata_reference_row_id_value_update";
+    ret = sqlite3_exec (sqlite, sql, NULL, NULL, NULL);
+    if (ret != SQLITE_OK)
+	return 0;
+
+/* reinstalling both Triggers */
+    if (!iso_reference_triggers (sqlite, enable_eval))
+	return 0;
     return 1;
 }
 
@@ -5057,6 +5163,7 @@ createMissingSystemTables (sqlite3 * sqlite, const void *cache, int relaxed,
 	 NULL},
 	{"rl2map_configurations_view", create_rl2map_configurations_view, NULL,
 	 NULL, NULL},
+	{"KNN2", create_knn2, NULL, NULL, NULL},
 	{NULL, NULL, NULL, NULL, NULL}
     };
     struct str_tables *p_table = tables;
@@ -5130,4 +5237,92 @@ createMissingSystemTables (sqlite3 * sqlite, const void *cache, int relaxed,
     return 1;
 #endif /* end RTTOPO */
 #endif /* end LIBXML2 */
+}
+
+SPATIALITE_PRIVATE int
+createMissingRasterlite2Columns (sqlite3 * sqlite)
+{
+/* 
+/ attempting to create all missing Columns in System Tables 
+/ required by Rasterlite2 "final"
+*/
+    int ret;
+    int failure = 0;
+    int success = 0;
+    const char *sql;
+
+    sql = "ALTER TABLE MAIN.raster_coverages ADD COLUMN is_opaque "
+	"INTEGER NOT NULL DEFAULT 0";
+    ret = sqlite3_exec (sqlite, sql, NULL, NULL, NULL);
+    if (ret != SQLITE_OK)
+	failure++;
+    else
+	success++;
+
+    sql = "ALTER TABLE MAIN.raster_coverages ADD COLUMN min_scale DOUBLE";
+    ret = sqlite3_exec (sqlite, sql, NULL, NULL, NULL);
+    if (ret != SQLITE_OK)
+	failure++;
+    else
+	success++;
+
+    sql = "ALTER TABLE MAIN.raster_coverages ADD COLUMN max_scale DOUBLE";
+    ret = sqlite3_exec (sqlite, sql, NULL, NULL, NULL);
+    if (ret != SQLITE_OK)
+	failure++;
+    else
+	success++;
+
+    sql = "ALTER TABLE MAIN.vector_coverages ADD COLUMN min_scale DOUBLE";
+    ret = sqlite3_exec (sqlite, sql, NULL, NULL, NULL);
+    if (ret != SQLITE_OK)
+	failure++;
+    else
+	success++;
+
+    sql = "ALTER TABLE MAIN.vector_coverages ADD COLUMN max_scale DOUBLE";
+    ret = sqlite3_exec (sqlite, sql, NULL, NULL, NULL);
+    if (ret != SQLITE_OK)
+	failure++;
+    else
+	success++;
+
+    sql = "ALTER TABLE MAIN.wms_getmap ADD COLUMN cascaded INTEGER";
+    ret = sqlite3_exec (sqlite, sql, NULL, NULL, NULL);
+    if (ret != SQLITE_OK)
+	failure++;
+    else
+	success++;
+
+    sql = "ALTER TABLE MAIN.wms_getmap ADD COLUMN min_scale DOUBLE";
+    ret = sqlite3_exec (sqlite, sql, NULL, NULL, NULL);
+    if (ret != SQLITE_OK)
+	failure++;
+    else
+	success++;
+
+    sql = "ALTER TABLE MAIN.wms_getmap ADD COLUMN max_scale DOUBLE";
+    ret = sqlite3_exec (sqlite, sql, NULL, NULL, NULL);
+    if (ret != SQLITE_OK)
+	failure++;
+    else
+	success++;
+
+    sql = "ALTER TABLE MAIN.wms_settings ADD COLUMN style_title TEXT";
+    ret = sqlite3_exec (sqlite, sql, NULL, NULL, NULL);
+    if (ret != SQLITE_OK)
+	failure++;
+    else
+	success++;
+
+    sql = "ALTER TABLE MAIN.wms_settings ADD COLUMN style_abstract TEXT";
+    ret = sqlite3_exec (sqlite, sql, NULL, NULL, NULL);
+    if (ret != SQLITE_OK)
+	failure++;
+    else
+	success++;
+
+    if (success == 0)
+	return 0;
+    return 1;
 }

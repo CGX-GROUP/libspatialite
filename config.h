@@ -41,7 +41,7 @@
 #define HAVE_LIBRTTOPO_H 1
 
 /* Define to 1 if you have the `sqlite3' library (-lsqlite3). */
-#define HAVE_LIBSQLITE3 1
+/* #undef HAVE_LIBSQLITE3 */
 
 /* Define to 1 if you have the `z' library (-lz). */
 #define HAVE_LIBZ 1
@@ -153,7 +153,7 @@
 #define PACKAGE_NAME "libspatialite"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "libspatialite 5.0.1"
+#define PACKAGE_STRING "libspatialite 5.1.0"
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "libspatialite"
@@ -162,13 +162,13 @@
 #define PACKAGE_URL ""
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "5.0.1"
+#define PACKAGE_VERSION "5.1.0"
 
 /* Define to 1 if you have the ANSI C header files. */
 #define STDC_HEADERS 1
 
 /* Define to 1 if you can safely include both <sys/time.h> and <time.h>. */
-#define TIME_WITH_SYS_TIME 1
+/* #undef TIME_WITH_SYS_TIME */
 
 /* Define to 1 if your <sys/time.h> declares `struct tm'. */
 /* #undef TM_IN_SYS_TIME */

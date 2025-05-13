@@ -1,7 +1,7 @@
 /*
  gg_core.h -- Gaia common support for geometries: core functions
   
- version 5.0, 2020 August 1
+ version 5.1.0, 2023 August 4
 
  Author: Sandro Furieri a.furieri@lqt.it
 
@@ -23,7 +23,7 @@ The Original Code is the SpatiaLite library
 
 The Initial Developer of the Original Code is Alessandro Furieri
  
-Portions created by the Initial Developer are Copyright (C) 2008-2021
+Portions created by the Initial Developer are Copyright (C) 2008-2023
 the Initial Developer. All Rights Reserved.
 
 Contributor(s):
@@ -1281,7 +1281,7 @@ extern "C"
 
  \param geom pointer to Geometry object
 
- \return 0 if the Geometry is empty: otherwise any other different value.
+ \return 0 if the Geometry is not empty: otherwise any other different value.
 
  \note an empty Geometry is a Geometry not containing any elementary
  item: i.e. no Points, no Linestrings and no Polygons at all.

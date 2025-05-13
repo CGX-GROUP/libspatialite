@@ -2,7 +2,7 @@
 
  stored_procedures.c -- SpatiaLite Stored Procedures support
 
- version 5.0, 2020 August 1
+ version 5.1.0, 2023 August 4
 
  Author: Sandro Furieri a.furieri@lqt.it
 
@@ -24,7 +24,7 @@ The Original Code is the SpatiaLite library
 
 The Initial Developer of the Original Code is Alessandro Furieri
  
-Portions created by the Initial Developer are Copyright (C) 2017-2021
+Portions created by the Initial Developer are Copyright (C) 2017-2023
 the Initial Developer. All Rights Reserved.
 
 Contributor(s):
@@ -2061,7 +2061,9 @@ do_open_new_connection (sqlite3 * origin, void *cache)
 	  sqlite3_close (handle);
 	  return NULL;
       }
+#ifndef LOADABLE_EXTENSION
     sqlite3_enable_load_extension (handle, 1);
+#endif
     spatialite_internal_init (handle, cache);
     return handle;
 }

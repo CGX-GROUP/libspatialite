@@ -175,6 +175,7 @@ LIBXML2_LIBS = @LIBXML2_LIBS@
 LIPO = @LIPO@
 LN_S = @LN_S@
 LTLIBOBJS = @LTLIBOBJS@
+LT_SYS_LIBRARY_PATH = @LT_SYS_LIBRARY_PATH@
 MAINT = @MAINT@
 MAKEINFO = @MAKEINFO@
 MANIFEST_TOOL = @MANIFEST_TOOL@
@@ -200,6 +201,8 @@ RANLIB = @RANLIB@
 SED = @SED@
 SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
+SQLITE3_CFLAGS = @SQLITE3_CFLAGS@
+SQLITE3_LIBS = @SQLITE3_LIBS@
 STRIP = @STRIP@
 VERSION = @VERSION@
 abs_builddir = @abs_builddir@
@@ -247,6 +250,7 @@ pdfdir = @pdfdir@
 prefix = @prefix@
 program_transform_name = @program_transform_name@
 psdir = @psdir@
+runstatedir = @runstatedir@
 sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 srcdir = @srcdir@
@@ -281,7 +285,51 @@ EXTRA_DIST = frechetdistance1.testcase \
 	frechetdistdens6.testcase \
 	frechetdistdens7.testcase \
 	frechetdistdens8.testcase \
-	frechetdistdens9.testcase
+	frechetdistdens9.testcase \
+	geosminboundcenter1.testcase \
+	geosminboundcenter2.testcase \
+	geosminboundcenter3.testcase \
+	geosminboundcenter4.testcase \
+	geosminboundcenter5.testcase \
+	geosminboundcenter6.testcase \
+	geosminboundcircle1.testcase \
+	geosminboundcircle2.testcase \
+	geosminboundcircle3.testcase \
+	geosminboundcircle4.testcase \
+	geosminboundcircle5.testcase \
+	geosminboundcircle6.testcase \
+	geosminboundradius1.testcase \
+	geosminboundradius2.testcase \
+	geosminboundradius3.testcase \
+	geosminboundradius4.testcase \
+	geosminboundradius5.testcase \
+	geosminboundradius6.testcase \
+	geosminclr1.testcase \
+	geosminclr2.testcase \
+	geosminclr3.testcase \
+	geosminclr4.testcase \
+	geosminclr5.testcase \
+	geosminclr6.testcase \
+	geosminclr7.testcase \
+	geosminclrline1.testcase \
+	geosminclrline2.testcase \
+	geosminclrline3.testcase \
+	geosminclrline4.testcase \
+	geosminclrline5.testcase \
+	geosminclrline6.testcase \
+	geosminclrline7.testcase \
+	geosminwidth1.testcase \
+	geosminwidth2.testcase \
+	geosminwidth3.testcase \
+	geosminwidth4.testcase \
+	geosminwidth5.testcase \
+	geosminwidth6.testcase \
+	geosminrotrect1.testcase \
+	geosminrotrect2.testcase \
+	geosminrotrect3.testcase \
+	geosminrotrect4.testcase \
+	geosminrotrect5.testcase \
+	geosminrotrect6.testcase
 
 all: all-am
 

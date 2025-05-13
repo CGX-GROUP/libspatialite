@@ -2,7 +2,7 @@
 
  virtualtext.c -- SQLite3 extension [VIRTUAL TABLE accessing CSV/TXT]
 
- version 5.0, 2020 August 1
+ version 5.1.0, 2023 August 4
 
  Author: Sandro Furieri a.furieri@lqt.it
 
@@ -24,7 +24,7 @@ The Original Code is the SpatiaLite library
 
 The Initial Developer of the Original Code is Alessandro Furieri
  
-Portions created by the Initial Developer are Copyright (C) 2008-2021
+Portions created by the Initial Developer are Copyright (C) 2008-2023
 the Initial Developer. All Rights Reserved.
 
 Contributor(s):
@@ -1195,7 +1195,7 @@ vrttxt_is_scientific_double (const char *value, char decimal_separator)
 	    }
 	  else if ((*p >= 'A' && *p <= 'Z') || (*p >= 'a' && *p <= 'z'))
 	    {
-		if (*p == 'E' || *p == 'e')
+		if ((*p == 'E' || *p == 'e') && digit2 > 0)
 		    exp++;
 		else
 		    invalid++;
@@ -1214,6 +1214,8 @@ vrttxt_is_scientific_double (const char *value, char decimal_separator)
 		else if (points)
 		    digit2++;
 	    }
+	  else
+	      invalid++;
 	  p++;
       }
     if (digit2 >= 0 && exp == 1 && (sign == 0 || sign == 1) && digit3
@@ -1286,11 +1288,26 @@ vrttxt_is_double (const char *value, char decimal_separator)
 }
 
 static int
-vrttxt_check_type (const char *value, char decimal_separator)
+vrttxt_check_type (const char *value, char decimal_separator,
+		   char text_delimiter)
 {
 /* checking the Field type */
+    int len;
     if (*value == '\0')
 	return VRTTXT_NULL;
+    len = strlen (value);
+    if (*(value + 0) == text_delimiter && *(value + len - 1) == text_delimiter)
+      {
+	  /* 
+	   * sandro 2021-08-14
+	   * 
+	   * carefully preserving any explicitly delimited text string 
+	   * 
+	   * fixing ticket ba12cb832c
+	   * 
+	   */
+	  return VRTTXT_TEXT;
+      }
     if (vrttxt_is_integer (value))
 	return VRTTXT_INTEGER;
     if (vrttxt_is_double (value, decimal_separator))
@@ -1485,7 +1502,8 @@ vrttxt_add_line (gaiaTextReaderPtr txt, struct vrttxt_line *line)
 		/* plain Field Value */
 		value_type =
 		    vrttxt_check_type (txt->field_buffer,
-				       txt->decimal_separator);
+				       txt->decimal_separator,
+				       txt->text_separator);
 		column_type = txt->columns[ind].type;
 		switch (value_type)
 		  {

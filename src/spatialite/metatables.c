@@ -2,7 +2,7 @@
 
  metatables.c -- creating the metadata tables and related triggers
 
- version 5.0, 2020 August 1
+ version 5.1.0, 2023 August 4
 
  Author: Sandro Furieri a.furieri@lqt.it
 
@@ -24,7 +24,7 @@ The Original Code is the SpatiaLite library
 
 The Initial Developer of the Original Code is Alessandro Furieri
  
-Portions created by the Initial Developer are Copyright (C) 2008-2021
+Portions created by the Initial Developer are Copyright (C) 2008-2023
 the Initial Developer. All Rights Reserved.
 
 Contributor(s):
@@ -2421,6 +2421,31 @@ create_data_licenses (sqlite3 * sqlite)
     strcpy (sql, "INSERT OR IGNORE INTO data_licenses (id, name, url) ");
     strcat (sql,
 	    "VALUES (9, 'CC BY-SA-NC 4.0', 'https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode.txt')");
+    ret = sqlite3_exec (sqlite, sql, NULL, NULL, &errMsg);
+    if (ret != SQLITE_OK)
+      {
+	  spatialite_e ("SQL error: %s: %s\n", sql, errMsg);
+	  sqlite3_free (errMsg);
+	  return 0;
+      }
+    return 1;
+}
+
+SPATIALITE_PRIVATE int
+create_knn2 (sqlite3 * sqlite)
+{
+    char sql[1024];
+    char *errMsg = NULL;
+    int ret;
+
+    if (sqlite3_db_readonly (sqlite, "MAIN") == 1)
+      {
+	  /* ignoring a read-only database */
+	  return 1;
+      }
+
+/* creating the KNN2 table */
+    strcpy (sql, "CREATE VIRTUAL TABLE IF NOT EXISTS KNN2 USING VirtualKNN2()");
     ret = sqlite3_exec (sqlite, sql, NULL, NULL, &errMsg);
     if (ret != SQLITE_OK)
       {
@@ -7780,165 +7805,217 @@ gaiaStatisticsInvalidate (sqlite3 * sqlite, const char *table,
 	return 0;
 }
 
-static int
-rtree_bbox_callback (sqlite3_rtree_query_info * info)
+SPATIALITE_PRIVATE int
+do_set_multiple_points (sqlite3 * db_handle, void *xline,
+			sqlite3_int64 pk_value, const char *table_name,
+			const char *point_name, const char *pk_name,
+			const char *pos_name)
 {
 /*
-
- R*Tree Query Callback function 
-
-----------------------------------------------------------
-
- this function will evaluate all first-level R*Tree Nodes
- (direct children of the Root Node) so to get the Full
- Extent of the R*Tree as a whole.
-
- further descending in the Tree's hierarchy will be
- carefully avoided, so to ensure that also in the case  
- of an R*Tree containing many million entries just few
- dozens of top level Nodes will require to be evaluated.
- 
+/ will attempt to edit a Linestring by replacing all Points found into an helper table
+/    - db_handle is the handle to the current SQLite's connection
+/    - xline is the pointer to the Geometry (of the Linestring type) to be edited
+/    - pk_value is the correspong feature's PK value
+/    - table_name is the name of the helper table
+/    - point_name is the name of the column containing Points
+/    - pk_name is the name of the column containig FIDs
+/    - pos_name is the name of the column containing 
+/      "positions" (zero-based index) of the Points to
+/       be replaced
 */
-    double minx;
-    double maxx;
-    double miny;
-    double maxy;
-    struct rtree_envelope *data = (struct rtree_envelope *) (info->pContext);
-    if (info->nCoord != 4)
-      {
-	  /* invalid RTree; not 2D */
-	  goto end;
-      }
+    sqlite3_stmt *stmt = NULL;
+    char *xtable_name;
+    char *xpoint_name;
+    char *xpk_name;
+    char *xpos_name;
+    char *sql;
+    int ret;
+    const char *name;
+    int i;
+    char **results;
+    int rows;
+    int columns;
+    int ok_point_name = 0;
+    int ok_pk_name = 0;
+    int ok_pos_name = 0;
+    int srid = -9999;
+    int gtype = -1;
+    int dims = -1;
+    int empty = 0;
+    gaiaGeomCollPtr line = (gaiaGeomCollPtr) xline;
+    gaiaLinestringPtr ln = line->FirstLinestring;
 
-/* fetching the Node's BBOX */
-    minx = info->aCoord[0];
-    maxx = info->aCoord[1];
-    miny = info->aCoord[2];
-    maxy = info->aCoord[3];
-
-/* updating the Full Extent BBOX */
-    if (data->valid == 0)
-      {
-	  /* first Node retrieved */
-	  data->valid = 1;
-	  data->minx = minx;
-	  data->maxx = maxx;
-	  data->miny = miny;
-	  data->maxy = maxy;
-      }
+/* checking if the helper table exists with the expected columns */
+    xtable_name = gaiaDoubleQuotedSql (table_name);
+    sql = sqlite3_mprintf ("PRAGMA MAIN.table_info(\"%s\")", xtable_name);
+    free (xtable_name);
+    ret = sqlite3_get_table (db_handle, sql, &results, &rows, &columns, NULL);
+    sqlite3_free (sql);
+    if (ret != SQLITE_OK)
+	return MULTIPLE_POINTS_TABLE;	/* table does not seems to exist */
+    if (rows < 1)
+	empty = 1;
     else
       {
-	  /* any other further Node */
-	  if (minx < data->minx)
-	      data->minx = minx;
-	  if (maxx > data->maxx)
-	      data->maxx = maxx;
-	  if (miny < data->miny)
-	      data->miny = miny;
-	  if (maxy > data->maxy)
-	      data->maxy = maxy;
+	  for (i = 1; i <= rows; i++)
+	    {
+		name = results[(i * columns) + 1];
+		if (strcasecmp (name, point_name) == 0)
+		    ok_point_name = 1;
+		if (strcasecmp (name, pk_name) == 0)
+		    ok_pk_name = 1;
+		if (strcasecmp (name, pos_name) == 0)
+		    ok_pos_name = 1;
+	    }
       }
+    sqlite3_free_table (results);
+    if (empty)
+	return MULTIPLE_POINTS_TABLE;	/* not existing table */
+    if (!ok_point_name)
+	return MULTIPLE_POINTS_POINT;	/* points column not found */
+    if (!ok_pk_name)
+	return MULTIPLE_POINTS_PK;	/* PK column not found */
+    if (!ok_pos_name)
+	return MULTIPLE_POINTS_POS;	/* position column not found */
 
-  end:
-/* setting NOT_WITHIN so to stop further descending into the tree */
-    info->eWithin = NOT_WITHIN;
-    return SQLITE_OK;
-}
-
-SPATIALITE_DECLARE gaiaGeomCollPtr
-gaiaGetRTreeFullExtent (sqlite3 * db_handle, const char *db_prefix,
-			const char *name, int srid)
-{
-/* Will attempt to retrieve the Full Extent from an R*Tree - SpatiaLite */
-    char *sql;
-    int ret;
-    char *xprefix;
-    char *xname;
-    gaiaGeomCollPtr envelope;
-    gaiaPolygonPtr polyg;
-    gaiaRingPtr rect;
-    struct rtree_envelope data;
-
-    data.valid = 0;
-
-/* registering the Geometry Query Callback SQL function */
-    sqlite3_rtree_query_callback (db_handle, "rtree_bbox",
-				  rtree_bbox_callback, &data, NULL);
-
-/* executing the SQL Query statement */
-    xprefix = gaiaDoubleQuotedSql (db_prefix);
-    xname = gaiaDoubleQuotedSql (name);
+/* checking the helper table's Geometry for consistency */
     sql =
 	sqlite3_mprintf
-	("SELECT pkid FROM \"%s\".\"%s\" WHERE pkid MATCH rtree_bbox(1)",
-	 xprefix, xname);
-    free (xprefix);
-    free (xname);
-    ret = sqlite3_exec (db_handle, sql, NULL, NULL, NULL);
+	("SELECT geometry_type, srid FROM MAIN.geometry_columns "
+	 "WHERE Upper(f_table_name) = Upper(%Q) AND "
+	 "Upper(f_geometry_column) = Upper(%Q)", table_name,
+	 point_name);
+    ret = sqlite3_get_table (db_handle, sql, &results, &rows, &columns, NULL);
     sqlite3_free (sql);
     if (ret != SQLITE_OK)
-	return NULL;
-    if (data.valid == 0)
-	return NULL;
+	return MULTIPLE_POINTS_NOGEOM;	/* point_name is not a registered Geometry */
+    empty = 0;
+    if (rows < 1)
+	empty = 1;
+    else
+      {
+	  for (i = 1; i <= rows; i++)
+	    {
+		gtype = atoi (results[(i * columns) + 0]);
+		srid = atoi (results[(i * columns) + 1]);
+	    }
+      }
+    sqlite3_free_table (results);
+    if (empty)
+	return MULTIPLE_POINTS_NOGEOM;	/* point_name is not a registered Geometry */
+    if (line->Srid != srid)
+	return MULTIPLE_POINTS_SRID;
+    switch (gtype)
+      {
+      case GAIA_POINT:
+	  dims = GAIA_XY;
+	  break;
+      case GAIA_POINTZ:
+	  dims = GAIA_XY_Z;
+	  break;
+      case GAIA_POINTM:
+	  dims = GAIA_XY_M;
+	  break;
+      case GAIA_POINTZM:
+	  dims = GAIA_XY_Z_M;
+	  break;
+      default:
+	  return MULTIPLE_POINTS_NOPOINT;
+      };
+    if (dims != line->DimensionModel)
+	return MULTIPLE_POINTS_DIMS;
 
-/* building the Envelope of the R*Tree */
-    envelope = gaiaAllocGeomColl ();
-    envelope->Srid = srid;
-    polyg = gaiaAddPolygonToGeomColl (envelope, 5, 0);
-    rect = polyg->Exterior;
-    gaiaSetPoint (rect->Coords, 0, data.minx, data.miny);	/* vertex # 1 */
-    gaiaSetPoint (rect->Coords, 1, data.maxx, data.miny);	/* vertex # 2 */
-    gaiaSetPoint (rect->Coords, 2, data.maxx, data.maxy);	/* vertex # 3 */
-    gaiaSetPoint (rect->Coords, 3, data.minx, data.maxy);	/* vertex # 4 */
-    gaiaSetPoint (rect->Coords, 4, data.minx, data.miny);	/* vertex # 5 [same as vertex # 1 to close the polygon] */
-    return envelope;
-}
-
-SPATIALITE_DECLARE gaiaGeomCollPtr
-gaiaGetGpkgRTreeFullExtent (sqlite3 * db_handle, const char *db_prefix,
-			    const char *name, int srid)
-{
-/* Will attempt to retrieve the Full Extent from an R*Tree - GeoPacage */
-    char *sql;
-    int ret;
-    char *xprefix;
-    char *xname;
-    gaiaGeomCollPtr envelope;
-    gaiaPolygonPtr polyg;
-    gaiaRingPtr rect;
-    struct rtree_envelope data;
-
-    data.valid = 0;
-
-/* registering the Geometry Query Callback SQL function */
-    sqlite3_rtree_query_callback (db_handle, "rtree_bbox",
-				  rtree_bbox_callback, &data, NULL);
-
-/* executing the SQL Query statement */
-    xprefix = gaiaDoubleQuotedSql (db_prefix);
-    xname = gaiaDoubleQuotedSql (name);
-    sql =
-	sqlite3_mprintf
-	("SELECT id FROM \"%s\".\"%s\" WHERE id MATCH rtree_bbox(1)",
-	 xprefix, xname);
-    free (xprefix);
-    free (xname);
-    ret = sqlite3_exec (db_handle, sql, NULL, NULL, NULL);
+/* preparing the SQL statement to get POINTs from the helper table */
+    xtable_name = gaiaDoubleQuotedSql (table_name);
+    xpoint_name = gaiaDoubleQuotedSql (point_name);
+    xpk_name = gaiaDoubleQuotedSql (pk_name);
+    xpos_name = gaiaDoubleQuotedSql (pos_name);
+    sql = sqlite3_mprintf ("SELECT \"%s\", \"%s\", Count(*) FROM MAIN.\"%s\" "
+			   "WHERE \"%s\" = ? GROUP BY \"%s\" ORDER BY \"%s\"",
+			   xpos_name, xpoint_name, xtable_name, xpk_name,
+			   xpos_name, xpos_name);
+    free (xpos_name);
+    free (xpk_name);
+    free (xpoint_name);
+    free (xtable_name);
+    ret = sqlite3_prepare_v2 (db_handle, sql, strlen (sql), &stmt, NULL);
     sqlite3_free (sql);
     if (ret != SQLITE_OK)
-	return NULL;
-    if (data.valid == 0)
-	return NULL;
+	goto error;
+    sqlite3_reset (stmt);
+    sqlite3_clear_bindings (stmt);
+    sqlite3_bind_int64 (stmt, 1, pk_value);
 
-/* building the Envelope of the R*Tree */
-    envelope = gaiaAllocGeomColl ();
-    envelope->Srid = srid;
-    polyg = gaiaAddPolygonToGeomColl (envelope, 5, 0);
-    rect = polyg->Exterior;
-    gaiaSetPoint (rect->Coords, 0, data.minx, data.miny);	/* vertex # 1 */
-    gaiaSetPoint (rect->Coords, 1, data.maxx, data.miny);	/* vertex # 2 */
-    gaiaSetPoint (rect->Coords, 2, data.maxx, data.maxy);	/* vertex # 3 */
-    gaiaSetPoint (rect->Coords, 3, data.minx, data.maxy);	/* vertex # 4 */
-    gaiaSetPoint (rect->Coords, 4, data.minx, data.miny);	/* vertex # 5 [same as vertex # 1 to close the polygon] */
-    return envelope;
+    while (1)
+      {
+	  /* scrolling the result set rows */
+	  ret = sqlite3_step (stmt);
+	  if (ret == SQLITE_DONE)
+	      break;		/* end of result set */
+	  if (ret == SQLITE_ROW)
+	    {
+		gaiaGeomCollPtr point;
+		gaiaPointPtr pt;
+		const unsigned char *blob;
+		int blob_size;
+		int position = sqlite3_column_int (stmt, 0);
+		int count = sqlite3_column_int (stmt, 2);
+		if (count != 1)
+		    goto dupl_row;
+		if (sqlite3_column_type (stmt, 1) != SQLITE_BLOB)
+		    goto illegal_geom;
+		blob = sqlite3_column_blob (stmt, 1);
+		blob_size = sqlite3_column_bytes (stmt, 1);
+		point = gaiaFromSpatiaLiteBlobWkb (blob, blob_size);
+		if (point == NULL)
+		    goto illegal_geom;
+		pt = point->FirstPoint;
+		if (pt == NULL)
+		    goto illegal_geom;
+		if (position >= 0 && position < ln->Points)
+		  {
+		      /* replacing coodinates of some vertex */
+		      if (line->DimensionModel == GAIA_XY_Z_M)
+			{
+			    gaiaSetPointXYZM (ln->Coords, position, pt->X,
+					      pt->Y, pt->Z, pt->M);
+			}
+		      else if (line->DimensionModel == GAIA_XY_Z)
+			{
+			    gaiaSetPointXYZ (ln->Coords, position, pt->X, pt->Y,
+					     pt->Z);
+			}
+		      else if (line->DimensionModel == GAIA_XY_M)
+			{
+			    gaiaSetPointXYM (ln->Coords, position, pt->X, pt->Y,
+					     pt->M);
+			}
+		      else
+			{
+			    gaiaSetPoint (ln->Coords, position, pt->X, pt->Y);
+			}
+		  }
+	    }
+	  else
+	      goto error;
+      }
+    sqlite3_finalize (stmt);
+
+
+    return MULTIPLE_POINTS_OK;
+
+  error:
+    if (stmt != NULL)
+	sqlite3_finalize (stmt);
+    return MULTIPLE_POINTS_SQL;
+
+  dupl_row:
+    if (stmt != NULL)
+	sqlite3_finalize (stmt);
+    return MULTIPLE_POINTS_DUPL;
+
+  illegal_geom:
+    if (stmt != NULL)
+	sqlite3_finalize (stmt);
+    return MULTIPLE_POINTS_GEOM;
 }

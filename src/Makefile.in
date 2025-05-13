@@ -341,6 +341,7 @@ LIBXML2_LIBS = @LIBXML2_LIBS@
 LIPO = @LIPO@
 LN_S = @LN_S@
 LTLIBOBJS = @LTLIBOBJS@
+LT_SYS_LIBRARY_PATH = @LT_SYS_LIBRARY_PATH@
 MAINT = @MAINT@
 MAKEINFO = @MAKEINFO@
 MANIFEST_TOOL = @MANIFEST_TOOL@
@@ -366,6 +367,8 @@ RANLIB = @RANLIB@
 SED = @SED@
 SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
+SQLITE3_CFLAGS = @SQLITE3_CFLAGS@
+SQLITE3_LIBS = @SQLITE3_LIBS@
 STRIP = @STRIP@
 VERSION = @VERSION@
 abs_builddir = @abs_builddir@
@@ -413,6 +416,7 @@ pdfdir = @pdfdir@
 prefix = @prefix@
 program_transform_name = @program_transform_name@
 psdir = @psdir@
+runstatedir = @runstatedir@
 sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 srcdir = @srcdir@
@@ -454,10 +458,10 @@ libspatialite_la_LIBADD = ./gaiaaux/libgaiaaux.la \
 	./stored_procedures/libstored_procedures.la \
 	./connection_cache/libconnection_cache.la \
 	./virtualtext/libvirtualtext.la ./wfs/libwfs.la @LIBXML2_LIBS@ \
-	$(am__append_1) $(am__append_2) $(am__append_3)
-@ANDROID_FALSE@@MINGW_FALSE@libspatialite_la_LDFLAGS = -version-info 8:2:1
-@ANDROID_TRUE@@MINGW_FALSE@libspatialite_la_LDFLAGS = -version-info 8:2:1
-@MINGW_TRUE@libspatialite_la_LDFLAGS = -version-info 4:4:0 -no-undefined
+	@SQLITE3_LIBS@ $(am__append_1) $(am__append_2) $(am__append_3)
+@ANDROID_FALSE@@MINGW_FALSE@libspatialite_la_LDFLAGS = -version-info 9:0:1
+@ANDROID_TRUE@@MINGW_FALSE@libspatialite_la_LDFLAGS = -version-info 9:0:1
+@MINGW_TRUE@libspatialite_la_LDFLAGS = -version-info 5:1:0 -no-undefined
 mod_spatialite_la_SOURCES = versioninfo/version.c
 mod_spatialite_la_LIBADD = ./gaiaaux/gaiaaux.la ./gaiaexif/gaiaexif.la \
 	./gaiageo/gaiageo.la ./geopackage/geopackage.la \
@@ -471,8 +475,8 @@ mod_spatialite_la_LIBADD = ./gaiaaux/gaiaaux.la ./gaiaexif/gaiaexif.la \
 mod_spatialite_la_CPPFLAGS = @CFLAGS@ @CPPFLAGS@ \
 	-I$(top_srcdir)/src/headers -I. -DLOADABLE_EXTENSION
 mod_spatialite_la_LIBTOOLFLAGS = --tag=disable-static
-@ANDROID_FALSE@@MINGW_FALSE@mod_spatialite_la_LDFLAGS = -module -version-info 8:0:1
-@ANDROID_TRUE@@MINGW_FALSE@mod_spatialite_la_LDFLAGS = -module -version-info 8:0:1
+@ANDROID_FALSE@@MINGW_FALSE@mod_spatialite_la_LDFLAGS = -module -version-info 9:0:1
+@ANDROID_TRUE@@MINGW_FALSE@mod_spatialite_la_LDFLAGS = -module -version-info 9:0:1
 @MINGW_TRUE@mod_spatialite_la_LDFLAGS = -module -avoid-version -no-undefined
 MOSTLYCLEANFILES = *.gcna *.gcno *.gcda
 all: all-recursive

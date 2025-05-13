@@ -1,7 +1,7 @@
 /*
  alloc_cache.c -- Gaia spatial support for SQLite
 
- version 5.0, 2020 August 1
+ version 5.1.0, 2023 August 4
 
  Author: Sandro Furieri a.furieri@lqt.it
 
@@ -23,7 +23,7 @@ The Original Code is the SpatiaLite library
 
 The Initial Developer of the Original Code is Alessandro Furieri
  
-Portions created by the Initial Developer are Copyright (C) 2013-2021
+Portions created by the Initial Developer are Copyright (C) 2013-2023
 the Initial Developer. All Rights Reserved.
 
 Contributor(s):
@@ -51,7 +51,7 @@ the terms of any one of the MPL, the GPL or the LGPL.
 #include <libloaderapi.h>
 #endif
 
-#if defined(_WIN32) && !defined(__MINGW32__)
+#if defined(_WIN32)
 #include <windows.h>
 #else
 #include <pthread.h>
@@ -110,7 +110,7 @@ extern char *gaia_geos_warning_msg;
 
 /* GLOBAL semaphores */
 int gaia_already_initialized = 0;
-#if defined(_WIN32) && !defined(__MINGW32__)
+#if defined(_WIN32)
 static CRITICAL_SECTION gaia_cache_semaphore;
 #else
 static pthread_mutex_t gaia_cache_semaphore = PTHREAD_MUTEX_INITIALIZER;
@@ -488,6 +488,7 @@ spatialite_alloc_reentrant ()
     const char *proj_db_path = NULL;
 #ifdef _WIN32
     char *win_prefix = NULL;
+    int is_proj_data = 0;
 #endif
 #endif
 
@@ -513,8 +514,38 @@ spatialite_alloc_reentrant ()
 #ifdef PROJ_NEW			/* supporting new PROJ.6 */
     cache->PROJ_handle = proj_context_create ();
     proj_log_func (cache->PROJ_handle, cache, gaia_proj_log_funct);	/* installing an error handler routine */
-    if (getenv ("PROJ_LIB") != NULL)
-	proj_db = sqlite3_mprintf ("%s/proj.db", getenv ("PROJ_LIB"));
+
+    /* 
+     * older versions of PROJ supported the env-var named PROJ_LIB
+     * starting since version 9.1.0 this env-var will be renamed as PROJ_DATA;
+     *          PROJ_LIB will continue to be supported as well but it will
+     *          become deprecated.
+     * and finally, starting since v.9.10.0 PROJ_LIB will be no longer supported
+     * 
+     * ======================================================================
+     * 
+     * the following patch will accommodate for all this
+     * (sandro: 2022-08-05)
+     *  
+     */
+    if (getenv ("PROJ_DATA") != NULL)
+      {
+	  /* searching first for PROJ_DATA */
+	  proj_db = sqlite3_mprintf ("%s/proj.db", getenv ("PROJ_DATA"));
+#ifdef _WIN32
+	  is_proj_data = 1;
+#endif
+      }
+    else if (getenv ("PROJ_LIB") != NULL)
+      {
+	  /* second chance: searching for PROJ_LIB */
+	  proj_db = sqlite3_mprintf ("%s/proj.db", getenv ("PROJ_LIB"));
+#ifdef _WIN32
+	  is_proj_data = 0;
+#endif
+      }
+    /* end sandro 2022-08-05 */
+
     if (proj_db != NULL)
       {
 	  proj_context_set_database_path (cache->PROJ_handle, proj_db,
@@ -589,12 +620,22 @@ spatialite_alloc_reentrant ()
 #endif
   skip_win:
     proj_db_path = proj_context_get_database_path (cache->PROJ_handle);
-#ifdef _WIN32			/* only for Windows - setting PROJ_LIB */
+#ifdef _WIN32			/* only for Windows - setting PROJ_LIB or PROJ_DATA */
     if (proj_set_ext_var && win_prefix && proj_db_path)
       {
-	  char *proj_lib = sqlite3_mprintf ("PROJ_LIB=%s", win_prefix);
-	  _putenv (proj_lib);
-	  sqlite3_free (proj_lib);
+	  /*
+	   * completing the patch for PROJ_LIB vs PROJ_DATA
+	   * 
+	   * (sandro: 2022-08-05)
+	   */
+	  char *proj_envvar;
+	  if (is_proj_data)
+	      proj_envvar = sqlite3_mprintf ("PROJ_DATA=%s", win_prefix);
+	  else
+	      proj_envvar = sqlite3_mprintf ("PROJ_LIB=%s", win_prefix);
+	  _putenv (proj_envvar);
+	  sqlite3_free (proj_envvar);
+	  /* end sandro 2022-08-05 */
       }
     if (win_prefix != NULL)
 	sqlite3_free (win_prefix);
@@ -920,6 +961,9 @@ free_internal_cache (struct splite_internal_cache *cache)
     free (cache->xmlParsingErrors);
     free (cache->xmlSchemaValidationErrors);
     free (cache->xmlXPathErrors);
+#ifdef ENABLE_LIBXML2		/* only if LIBXML2 is supported */
+    xmlCleanupParser ();
+#endif /* end LIBXML2 conditional */
 
 /* freeing the GEOS cache */
     p = &(cache->cacheItem1);
@@ -1262,7 +1306,7 @@ gaiaCriticalPointFromGEOSmsg_r (const void *p_cache)
 SPATIALITE_PRIVATE void
 splite_cache_semaphore_lock (void)
 {
-#if defined(_WIN32) && !defined(__MINGW32__)
+#if defined(_WIN32)
     EnterCriticalSection (&gaia_cache_semaphore);
 #else
     pthread_mutex_lock (&gaia_cache_semaphore);
@@ -1272,7 +1316,7 @@ splite_cache_semaphore_lock (void)
 SPATIALITE_PRIVATE void
 splite_cache_semaphore_unlock (void)
 {
-#if defined(_WIN32) && !defined(__MINGW32__)
+#if defined(_WIN32)
     LeaveCriticalSection (&gaia_cache_semaphore);
 #else
     pthread_mutex_trylock (&gaia_cache_semaphore);
@@ -1287,7 +1331,7 @@ spatialite_initialize (void)
     if (gaia_already_initialized)
 	return;
 
-#if defined(_WIN32) && !defined(__MINGW32__)
+#if defined(_WIN32)
     InitializeCriticalSection (&gaia_cache_semaphore);
 #endif
 
@@ -1308,7 +1352,7 @@ spatialite_shutdown (void)
     if (!gaia_already_initialized)
 	return;
 
-#if defined(_WIN32) && !defined(__MINGW32__)
+#if defined(_WIN32)
     DeleteCriticalSection (&gaia_cache_semaphore);
 #endif
 

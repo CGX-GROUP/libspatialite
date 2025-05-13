@@ -2,7 +2,7 @@
 
  gg_geoscvt.c -- Gaia / GEOS conversion [Geometry]
     
- version 5.0, 2020 August 1
+ version 5.1.0, 2023 August 4
 
  Author: Sandro Furieri a.furieri@lqt.it
 
@@ -24,7 +24,7 @@ The Original Code is the SpatiaLite library
 
 The Initial Developer of the Original Code is Alessandro Furieri
  
-Portions created by the Initial Developer are Copyright (C) 2008-2021
+Portions created by the Initial Developer are Copyright (C) 2008-2023
 the Initial Developer. All Rights Reserved.
 
 Contributor(s):
@@ -1331,6 +1331,39 @@ toGeosGeometry (const void *cache, GEOSContextHandle_t handle,
     return geos;
 }
 
+static int
+check_empty_geom (gaiaGeomCollPtr geom)
+{
+/* checking for EMTPY Geometries */
+    gaiaPointPtr pt;
+    gaiaLinestringPtr ln;
+    gaiaPolygonPtr pg;
+    int pts = 0;
+    int lns = 0;
+    int pgs = 0;
+    pt = geom->FirstPoint;
+    while (pt != NULL)
+      {
+	  pts++;
+	  pt = pt->Next;
+      }
+    ln = geom->FirstLinestring;
+    while (ln != NULL)
+      {
+	  lns++;
+	  ln = ln->Next;
+      }
+    pg = geom->FirstPolygon;
+    while (pg != NULL)
+      {
+	  pgs++;
+	  pg = pg->Next;
+      }
+    if (pts || lns || pgs)
+	return 0;
+    return 1;
+}
+
 static gaiaGeomCollPtr
 fromGeosGeometry (GEOSContextHandle_t handle, const GEOSGeometry * geos,
 		  const int dimension_model)
@@ -1372,6 +1405,8 @@ fromGeosGeometry (GEOSContextHandle_t handle, const GEOSGeometry * geos,
     else
 	type = GEOSGeomTypeId (geos);
 #endif
+	if (type < 0)
+	return NULL;
     switch (type)
       {
       case GEOS_POINT:
@@ -1466,6 +1501,8 @@ fromGeosGeometry (GEOSContextHandle_t handle, const GEOSGeometry * geos,
 		GEOSCoordSeq_getSize (cs, &points);
 #endif
 	    }
+	  if (points <= 0)
+	      goto skip_empty_linestring;
 	  ln = gaiaAddLinestringToGeomColl (gaia, points);
 	  for (iv = 0; iv < (int) points; iv++)
 	    {
@@ -1519,6 +1556,7 @@ fromGeosGeometry (GEOSContextHandle_t handle, const GEOSGeometry * geos,
 		      gaiaSetPoint (ln->Coords, iv, x, y);
 		  }
 	    }
+	skip_empty_linestring:
 	  break;
       case GEOS_POLYGON:
 	  if (dimension_model == GAIA_XY_Z)
@@ -1555,6 +1593,8 @@ fromGeosGeometry (GEOSContextHandle_t handle, const GEOSGeometry * geos,
 		GEOSCoordSeq_getSize (cs, &points);
 #endif
 	    }
+	  if (points <= 0)
+	      goto skip_empty_polygon;
 	  pg = gaiaAddPolygonToGeomColl (gaia, points, holes);
 	  rng = pg->Exterior;
 	  for (iv = 0; iv < (int) points; iv++)
@@ -1682,6 +1722,7 @@ fromGeosGeometry (GEOSContextHandle_t handle, const GEOSGeometry * geos,
 			}
 		  }
 	    }
+	skip_empty_polygon:
 	  break;
       case GEOS_MULTIPOINT:
       case GEOS_MULTILINESTRING:
@@ -2130,6 +2171,11 @@ fromGeosGeometry (GEOSContextHandle_t handle, const GEOSGeometry * geos,
 	    }
 	  break;
       };
+    if (check_empty_geom (gaia))
+      {
+	  gaiaFreeGeomColl (gaia);
+	  return NULL;
+      }
     return gaia;
 }
 

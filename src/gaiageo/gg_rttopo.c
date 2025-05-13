@@ -2,7 +2,7 @@
 
  gg_rttopo.c -- Gaia RTTOPO support
     
- version 5.0, 2020 August 1
+ version 5.1.0, 2023 August 4
 
  Author: Sandro Furieri a.furieri@lqt.it
 
@@ -24,7 +24,7 @@ The Original Code is the SpatiaLite library
 
 The Initial Developer of the Original Code is Alessandro Furieri
  
-Portions created by the Initial Developer are Copyright (C) 2012-2021
+Portions created by the Initial Developer are Copyright (C) 2012-2023
 the Initial Developer. All Rights Reserved.
 
 Contributor(s):
@@ -1093,6 +1093,18 @@ fromRTGeomIncremental (const RTCTX * ctx, gaiaGeomCollPtr gaia,
 		      break;
 		  case RTPOLYGONTYPE:
 		      rtpoly = (RTPOLY *) rtg2;
+
+		      /* 
+		       * sandro 2023-08-22
+		       * 
+		       * critical patch required by GEOS 3.12.0
+		       * that declares invalid POLYGONs without any RING
+		       * 
+		       */
+		      if (rtpoly->nrings <= 0)
+			  continue;
+		      /* end sandro 2023-07-22 */
+
 		      has_z = 0;
 		      has_m = 0;
 		      pa = rtpoly->rings[0];

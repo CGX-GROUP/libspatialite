@@ -175,6 +175,7 @@ LIBXML2_LIBS = @LIBXML2_LIBS@
 LIPO = @LIPO@
 LN_S = @LN_S@
 LTLIBOBJS = @LTLIBOBJS@
+LT_SYS_LIBRARY_PATH = @LT_SYS_LIBRARY_PATH@
 MAINT = @MAINT@
 MAKEINFO = @MAKEINFO@
 MANIFEST_TOOL = @MANIFEST_TOOL@
@@ -200,6 +201,8 @@ RANLIB = @RANLIB@
 SED = @SED@
 SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
+SQLITE3_CFLAGS = @SQLITE3_CFLAGS@
+SQLITE3_LIBS = @SQLITE3_LIBS@
 STRIP = @STRIP@
 VERSION = @VERSION@
 abs_builddir = @abs_builddir@
@@ -247,6 +250,7 @@ pdfdir = @pdfdir@
 prefix = @prefix@
 program_transform_name = @program_transform_name@
 psdir = @psdir@
+runstatedir = @runstatedir@
 sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 srcdir = @srcdir@
@@ -379,6 +383,11 @@ EXTRA_DIST = addfileid1.testcase \
 	recreatestyling9.testcase \
 	recreatestyling10.testcase \
 	recreatestyling11.testcase \
+	recreateisometarefs1.testcase \
+	recreateisometarefs2.testcase \
+	recreateisometarefs3.testcase \
+	recreateisometarefs4.testcase \
+	recreateisometarefs5.testcase \
 	registerGraphic10.testcase \
 	registerGraphic11.testcase \
 	registerGraphic12.testcase \
@@ -702,6 +711,16 @@ EXTRA_DIST = addfileid1.testcase \
 	setvectorinfos20.testcase \
 	setvectorinfos21.testcase \
 	setvectorinfos22.testcase \
+	setvectorvisrange1.testcase \
+	setvectorvisrange2.testcase \
+	setvectorvisrange3.testcase \
+	setvectorvisrange4.testcase \
+	setvectorvisrange5.testcase \
+	setvectorvisrange6.testcase \
+	setvectorvisrange7.testcase \
+	setvectorvisrange8.testcase \
+	setvectorvisrange9.testcase \
+	setvectorvisrange10.testcase \
 	unregisterGraphic1.testcase \
 	unregisterGraphic2.testcase \
 	unregisterGraphic3.testcase \

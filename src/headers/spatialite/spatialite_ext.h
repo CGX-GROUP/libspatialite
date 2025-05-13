@@ -1,7 +1,7 @@
 /* 
  spatialite_ext.h -- Gaia support for SQLite extensions
   
- version 5.0, 2020 August 1
+ version 5.1.0, 2023 August 4
 
  Author: Sandro Furieri a.furieri@lqt.it
 
@@ -23,7 +23,7 @@ The Original Code is the SpatiaLite library
 
 The Initial Developer of the Original Code is Alessandro Furieri
  
-Portions created by the Initial Developer are Copyright (C) 2008-2021
+Portions created by the Initial Developer are Copyright (C) 2008-2023
 the Initial Developer. All Rights Reserved.
 
 Contributor(s):
@@ -57,6 +57,7 @@ SPATIALITE_PRIVATE int mbrcache_extension_init (void *db);
 SPATIALITE_PRIVATE int virtual_spatialindex_extension_init (void *db);
 SPATIALITE_PRIVATE int virtual_elementary_extension_init (void *db);
 SPATIALITE_PRIVATE int virtual_knn_extension_init (void *db);
+SPATIALITE_PRIVATE int virtual_knn2_extension_init (void *db);
 SPATIALITE_PRIVATE int virtual_xpath_extension_init (void *db,
 						     const void *p_cache);
 SPATIALITE_PRIVATE int virtualgpkg_extension_init (void *db);

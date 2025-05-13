@@ -1436,6 +1436,23 @@ EXTRA_DIST = addpoint10.testcase \
 	getmimetype3.testcase \
 	getmimetype4.testcase \
 	getmimetype5.testcase \
+	getpointindex1.testcase \
+	getpointindex2.testcase \
+	getpointindex3.testcase \
+	getpointindex4.testcase \
+	getpointindex5.testcase \
+	getpointindex6.testcase \
+	getpointindex7.testcase \
+	getpointindex8.testcase \
+	getpointindex9.testcase \
+	getpointindex10.testcase \
+	getpointindex11.testcase \
+	getpointindex12.testcase \
+	getpointindex13.testcase \
+	getpointindex14.testcase \
+	getpointindex15.testcase \
+	getpointindex16.testcase \
+	getpointindex17.testcase \
 	getvtableextent1.testcase \
 	getvtableextent2.testcase \
 	getvtableextent3.testcase \
@@ -2299,21 +2316,6 @@ EXTRA_DIST = addpoint10.testcase \
 	shiftlongitude8.testcase \
 	shiftlongitude9.testcase \
 	spatialindex.testcase \
-	spatialindexextent1.testcase \
-	spatialindexextent2.testcase \
-	spatialindexextent3.testcase \
-	spatialindexextent4.testcase \
-	spatialindexextent5.testcase \
-	spatialindexextent6.testcase \
-	spatialindexextent7.testcase \
-	spatialindexextent8.testcase \
-	spatialindexextent9.testcase \
-	spatialindexextent10.testcase \
-	spatialindexextent11.testcase \
-	spatialindexextent12.testcase \
-	spatialindexextent13.testcase \
-	spatialindexextent14.testcase \
-	spatialindexextent15.testcase \
 	srid10.testcase \
 	srid11.testcase \
 	srid1.testcase \
@@ -2910,6 +2912,19 @@ EXTRA_DIST = addpoint10.testcase \
 	wms_registergetmap84.testcase \
 	wms_registergetmap85.testcase \
 	wms_registergetmap86.testcase \
+	wms_registergetmap87.testcase \
+	wms_registergetmap88.testcase \
+	wms_registergetmap89.testcase \
+	wms_registergetmap90.testcase \
+	wms_registergetmap91.testcase \
+	wms_registergetmap92.testcase \
+	wms_registergetmap93.testcase \
+	wms_registergetmap94.testcase \
+	wms_registergetmap95.testcase \
+	wms_registergetmap96.testcase \
+	wms_registergetmap97.testcase \
+	wms_registergetmap98.testcase \
+	wms_registergetmap99.testcase \
 	wms_registersetting1.testcase \
 	wms_registersetting2.testcase \
 	wms_registersetting3.testcase \
@@ -2932,6 +2947,32 @@ EXTRA_DIST = addpoint10.testcase \
 	wms_registersetting20.testcase \
 	wms_registersetting21.testcase \
 	wms_registersetting22.testcase \
+	wms_registerstyle1.testcase \
+	wms_registerstyle2.testcase \
+	wms_registerstyle3.testcase \
+	wms_registerstyle4.testcase \
+	wms_registerstyle5.testcase \
+	wms_registerstyle6.testcase \
+	wms_registerstyle7.testcase \
+	wms_registerstyle8.testcase \
+	wms_registerstyle9.testcase \
+	wms_registerstyle10.testcase \
+	wms_registerstyle11.testcase \
+	wms_registerstyle12.testcase \
+	wms_registerstyle13.testcase \
+	wms_registerstyle14.testcase \
+	wms_registerstyle15.testcase \
+	wms_registerstyle16.testcase \
+	wms_registerstyle17.testcase \
+	wms_registerstyle18.testcase \
+	wms_registerstyle19.testcase \
+	wms_registerstyle20.testcase \
+	wms_registerstyle21.testcase \
+	wms_registerstyle22.testcase \
+	wms_registerstyle23.testcase \
+	wms_registerstyle24.testcase \
+	wms_registerstyle25.testcase \
+	wms_registerstyle26.testcase \
 	wms_registersrs1.testcase \
 	wms_registersrs2.testcase \
 	wms_registersrs3.testcase \

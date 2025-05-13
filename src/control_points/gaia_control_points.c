@@ -2,12 +2,12 @@
 
  gaia_control_points.c -- Gaia implementation of RMSE and TPS Control Points
     
- version 5.0, 2020 August 1
+ version 5.1.0, 2023 August 4
 
  Author: Sandro Furieri a.furieri@lqt.it
 
  ------------------------------------------------------------------------------
- DISCLAIMER: this source is simply intemded as an interface supporting the
+ DISCLAIMER: this source is simply intended as an interface supporting the
              sources from Grass GIS
 			 NOTE: accordingly to the initial license this file is released
 			 under GPL2+ terms

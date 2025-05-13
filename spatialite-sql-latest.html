@@ -10,7 +10,7 @@
 			i {color:navy;}
 		</style>
 	</head><body bgcolor="#fffff0">
-		<h2>SpatiaLite 5.0.1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;SQL functions reference list</h2>
+		<h2>SpatiaLite 5.1.0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;SQL functions reference list</h2>
 		<a href="https://www.gaia-gis.it/fossil/libspatialite">back</a>
 		<ul>
 			<li><a href="#version">SQL Version Info [and build options testing] functions</a></li>
@@ -56,7 +56,6 @@
 			<li><a href="#p16fdo">SQL functions implementing FDO/OGR compatibility</a></li>
 			<li><a href="#p16gpkg">SQL functions implementing OGC GeoPackage compatibility</a></li>
 			<li><a href="#p17">SQL functions for MbrCache-based queries</a></li>
-			<li><a href="#p18">SQL functions for R*Tree-based queries (Geometry Callbacks)</a></li>
 			<li><a href="#xmlBlob">SQL functions supporting XmlBLOB</a></li>
 			<li><a href="#srid">SQL functions supporting SRID inspection</a></li>
 			<li><a href="#proj6">SQL functions supporting new PROJ.6 API</a></li>
@@ -128,6 +127,12 @@
 			<tr><td><b>HasGeosAdvanced</b></td>
 				<td>HasGeosAdvanced( void ) : <i>Boolean</i></td>
 				<td colspan="3">TRUE if the underlying library was built enabling <b>GEOSADVANCED</b></td></tr>
+			<tr><td><b>HasGeos3100</b></td>
+				<td>HasGeos3100( void ) : <i>Boolean</i></td>
+				<td colspan="3">TRUE if the underlying library was built enabling <b>GEOS3100</b></td></tr>
+			<tr><td><b>HasGeos3110</b></td>
+				<td>HasGeos3110( void ) : <i>Boolean</i></td>
+				<td colspan="3">TRUE if the underlying library was built enabling <b>GEOS3110</b></td></tr>
 			<tr><td><b>HasGeosTrunk</b></td>
 				<td>HasGeosTrunk( void ) : <i>Boolean</i></td>
 				<td colspan="3">TRUE if the underlying library was built enabling <b>GEOSTRUNK</b></td></tr>
@@ -1915,6 +1920,61 @@ algorithm with given <i>tolerance</i> and respecting topology</td></tr>
 				<td align="center" bgcolor="#d0f0d0">base</td>
 				<td>returns a new Linestring by removing the Point at <b>position</b> (zero-based index).<br>
                                 <b>NULL</b> will be returned if any error is encountered.</td></tr>
+			<tr><td><b>GetPointIndex</b></td>
+				<td>GetPointIndex( line <i>LineString</i> , point <i>Point</i> ) : <i>Integer</i><br>
+					GetPointIndex( line <i>LineString</i> , point <i>Point</i> , check_multiple <i>Boolean</i> ) : <i>Integer</i><hr>
+					ST_GetPointIndex line <i>LineString</i> , point <i>Point</i> ) : <i>Integer</i><br>
+					ST_GetPointIndex line <i>LineString</i> , point <i>Point</i> , check_multiple <i>Boolean</i> ) : <i>Integer</i></td>
+				<td></td>
+				<td align="center" bgcolor="#d0f0d0">base</td>
+				<td>returns the <b>position</b> (zero-based index) of the Linestring's vertex nearest to the given Point.<br>						
+						<b>NULL</b> will be returned if any error is encountered.
+						<ul><li>if the optional argument <b>check_multiple</b> is set to <b>TRUE</b> (always <b>FALSE</b> by default) the following special behavior applies:
+						<ul>
+							<li>if <b>Point</b> corresponds to multiple vertices of the Linestring (<i>repeated vertices or self-intesections</i>) then <b>-1</b> will be returned.</li>
+							<li>otherwise the index of the first Vertex found will be returned.</li>
+						</ul>
+						</li></ul>
+						</td></tr>
+			<tr><td><b>SetMultiplePoints</b></td>
+				<td>SetMultiplePoints( line <i>LineString</i> , pk_value <i>Integer</i> , table_name <i>Text</i> , point_name <i>Text</i>, pk_name <i>Text</i> , position_name <i>Text</i> ) : <i>Linestring</i><hr>
+					ST_SetMultiplePoints( line <i>LineString</i> , pk_value <i>Integer</i> , table_name <i>Text</i> , point_name <i>Text</i>, pk_name <i>Text</i> , position_name <i>Text</i> ) : <i>Linestring</i></td>
+				<td></td>
+				<td align="center" bgcolor="#d0f0d0">base</td>
+				<td>returns a new Linestring by replacing one or more Vertices accordingly to the content of an <i><u>auxiliary helper table</u></i>.<br><br>
+					<b>Note</b>: this one is a very special SQL Function not intended for general purposes but mostly for supporting power users.<br>
+						Its intended scope is to make easier the task of cleaning/snapping very dirty linear geometries before any attempt to load them into a Topology.<br><br>
+						The expected layout of the auxiliary helper table is as follows:
+						<table cellspan="0" cellpadding="0" bgcolor="#ffffc0">
+							<tr><td cellspan="2"><b>CREATE TABLE</b> <i>helper_table</i> <b>(</b></td></tr>
+							<tr><td>&nbsp;&nbsp;&nbsp;&nbsp;<i>fid</i> <b>INTEGER NOT NULL</b>,</td><td>-- column containing <i>Feature IDs</i></td></tr>
+							<tr><td>&nbsp;&nbsp;&nbsp;&nbsp;<i>pos</i> <b>INTEGER NOT NULL</b>,</td><td>-- column containing <i>vertex positions</i> (zero-based index)</td></tr>
+							<tr><td colspan="2">&nbsp;&nbsp;&nbsp;&nbsp;<b>CONSTRAINT</b> <i>pk_helptbl</i> <b>PRIMARY KEY (</b><i>fid, pos</i><b>));</b></td></tr>
+							<tr><td><b>SELECT AddGeometryColumn(</b>'<i>helper_table</i>', '<i>geom</i>', <i>someSRID</i>, '<b>POINT</b>', <i>dimensions</i> <b>);</b></td>
+							<td>-- Geometry column of the <b>POINT</b> type containing the new vertices to be replaced</td></tr>
+						</table><br>
+						Arguments interpretation:
+						<ul>
+							<li><b>line</b> is the input Linestring to be edited.</li>
+							<li><b>pk_value</b> is the Feature ID corresponding to the above Linestring</li>
+							<li><b>table_name</b> is the name of the auxiliari helper table always assumed to be on the <b>MAIN</b> DB.
+								(in this example '<i>helper_table</i>')</li>
+							<li><b>point_name</b> is the name of the column containing the new Points to be replaced.
+								(in this example '<i>geom</i>')</li></li>
+							<li><b>pk_name</b> is the name of the column containing Feature IDs.
+								(in this example '<i>fid</i>')</li></li>
+							<li><b>position_name</b> is the name of the column containing Vertices' relative positions.
+								(in this example '<i>pos</i>')</li></li>
+						</ul>
+						Remarks:
+						<ul>
+							<li><b>point_name</b> must be a registered Geometry and must have tha same SRID and Dimensions of the input Linestring.</li>
+							<li>Only the Vertices matching <b>pk_value</b> will be taken in consideration.</li>
+							<li>Rows from the helper table eventually exceeding the <b>position</b> range allowed by the Linestring will be silently ignored.</li>
+							<li>All Vertices not matching any row in the helper table will be left untouched as they are.</li>
+							<li>Multiple definitions of the same position will raise an Exception.</li>
+						</ul>
+                                an <b>Exception</b> will be raised if any error is encountered.</td></tr>
 			<tr><td><b>LinestringMinSegmentLength</b></td>
 				<td>LinestringMinSegmentLength( line <i>LineString</i> ) : <i>Double precision</i><hr>
 					LinestringMinSegmentLength( line <i>LineString</i> , boolean <i>ignore_repeated_vertices</i> ) : <i>Double precision</i><hr>
@@ -2308,6 +2368,14 @@ This function only supports Long/Lat coordinates, and will return NULL for any p
 				<td>return the distance between geom1 and geom2 (measured in meters).<br>
 If the <b>use_ellipsoid</b> argument is set to <b>TRUE</b> the precise (but slower) distance will be computed on the Ellipsoid, otherwise will be computed on the Great Circle (approximative, but faster).<hr>
 This function only supports Long/Lat coordinates, and will return NULL for any planar CRS</td></tr>
+			<tr><td><b>DistanceWithin</b></td>
+				<td>DistanceWithin( geom1 <i>Geometry</i> , geom2 <i>Geometry</i>, range <i>Double precision</i> ] ) : <i>Integer</i><hr>
+					ST_DistanceWithin( geom1 <i>Geometry</i> , geom2 <i>Geometry</i>, range <i>Double precision</i> ) : <i>Integer</i></td>
+				<td></td>
+				<td align="center" bgcolor="#f0d0d0">GEOS</td>
+				<td>return TRUE (1) if the distance between <i>geom1</i> and <i>geom2</i> is within the given range.<br>
+				Distances are always expressed in the length unit corresponding to the geoms own SRID<hr>
+				<u>Note</u>: When supported by <b>GEOS3100</b> this function will be much more efficient</td></tr>
 			<tr><td><b>PtDistWithin</b></td>
 				<td>PtDistWithin( geom1 <i>Geometry</i> , geom2 <i>Geometry</i>, range <i>Double precision</i> [, use_spheroid <i>Integer</i> ] ) 
 					: <i>Integer</i></td>
@@ -2365,7 +2433,7 @@ This function only supports Long/Lat coordinates, and will return NULL for any p
 				a Trajectory is assumed to be a LINESTRING supporting M-values growing from each vertex to the next.<hr>
 				NULL will be returned on invalid arguments.</td></tr>                           
 			<tr><td><b>TrajectoryInterpolatePoint</b></td>
-				<td>ST_TrajectoryInterpolarePoint( geom <i>Geometry</i> , m_value <i>Double</i> ) : <i>Geometry</i></td>
+				<td>ST_TrajectoryInterpolatePoint( geom <i>Geometry</i> , m_value <i>Double</i> ) : <i>Geometry</i></td>
 				<td></td>
 				<td align="center" bgcolor="#d0f0d0">base</td>
 				<td>Check if a Geometry corresponds to a valid Trajectory.<br>
@@ -2431,36 +2499,6 @@ This function only supports Long/Lat coordinates, and will return NULL for any p
 				<td>return a geometric object that is the convex hull of geom</td></tr>
 			<tr><td colspan="5" align="center" bgcolor="#f0f0c0">
 				<h3><a name="p14b">SQL functions that implement spatial operators<br>[GEOS specific features]</a></h3></td></tr>
-			<tr><td><b>HausdorffDistance</b></td>
-				<td>HausdorffDistance( geom1 <i>Geometry</i> , geom2 <i>Geometry</i> ) : <i>Double precision</i><hr>
-					HausdorffDistance( geom1 <i>Geometry</i> , geom2 <i>Geometry</i> , densify_fract <i>Double precision</i> ) : <i>Double precision</i><hr>
-					ST_HausdorffDistance( geom1 <i>Geometry</i> , geom2 <i>Geometry</i> ) : <i>Double precision</i><hr>
-					ST_HausdorffDistance( geom1 <i>Geometry</i> , geom2 <i>Geometry</i> , densify_fract <i>Double precision</i> ) : <i>Double precision</i></td>
-				<td></td>
-				<td align="center" bgcolor="#f0d0d0">GEOS</td>
-				<td>return the Hausdorff distance between geom1 and geom2<br>
-				<a href="http://en.wikipedia.org/wiki/Hausdorff_distance">learn more</a><hr>
-				the optional argument <b>densify_fract</b> is the fraction (in the range <b>0.0 / 1.0</b>) by which to densify
-				each segment. Each segment will be split into a number of equal-lenght subsegments, whose fraction of the total
-				length is closest to the given fraction.<br>
-				The smaller <b>densify_fract</b> we specify, the more acurate Hausdorff distance we get. 
-				But, the computation time and the memory usage increase with the square of the number of subsegments.<hr>
-				The second form of this SQL function (supporting <b>densify_fract</b>) is only available when using <b>GEOS 3.7.0</b> (or any subsequent version).</td></tr>
-			<tr><td><b>FrechetDistance</b></td>
-				<td>FrechetDistance( geom1 <i>Geometry</i> , geom2 <i>Geometry</i> ) : <i>Double precision</i><hr>
-					FrechetDistance( geom1 <i>Geometry</i> , geom2 <i>Geometry</i> , densify_fract <i>Double precision</i> ) : <i>Double precision</i><hr>
-					ST_FrechetDistance( geom1 <i>Geometry</i> , geom2 <i>Geometry</i> ) : <i>Double precision</i><hr>
-					ST_FrechetDistance( geom1 <i>Geometry</i> , geom2 <i>Geometry</i> , densify_fract <i>Double precision</i> ) : <i>Double precision</i></td>
-				<td></td>
-				<td align="center" bgcolor="#f0d0d0">GEOS</td>
-				<td>return the Fréchet distance between geom1 and geom2<br>
-				<a href="https://en.wikipedia.org/wiki/Fr%C3%A9chet_distance">learn more</a><hr>
-				the optional argument <b>densify_fract</b> is the fraction (in the range <b>0.0 / 1.0</b>) by which to densify
-				each segment. Each segment will be split into a number of equal-lenght subsegments, whose fraction of the total
-				length is closest to the given fraction.<br>
-				The smaller <b>densify_fract</b> we specify, the more acurate Fréchet distance we get. 
-				But, the computation time and the memory usage increase with the square of the number of subsegments.<hr>
-				This SQL function is only available when using <b>GEOS 3.7.0</b> (or any subsequent version).</td></tr>
 			<tr><td><b>OffestCurve</b></td>
 				<td>OffsetCurve( geom <i>Curve</i> , radius <i>Double precision</i> ) : <i>Curve</i><hr>
 					ST_OffsetCurve( geom <i>Curve</i> , radius <i>Double precision</i> ) : <i>Curve</i></td>
@@ -2744,6 +2782,13 @@ This function only supports Long/Lat coordinates, and will return NULL for any p
 					The returned Geometry will usually be of the <b>MultiPolygon</b> type (a collection of Triangles), but will be a <b>MultiLinestring</b> if the optional <b>edges_only</b> argument is set to <b>TRUE</b><br>
                                         The optional argument <b>tolerance</b> is intended to normalize the input Geometry, suppressing repeated (or too close) Points.<br>
 					NULL is returned on failure.</td></tr>
+			<tr><td><b>ConstrainedDelaunayTriangulation</b></td>
+				<td>ConstrainedDelaunayTriangulation( geom <i>Geometry</i>  ) : <i>Geometry</i><hr>
+					ST_ConstrainedDelaunayTriangulation( geom <i>Geometry</i>  ) : <i>Geometry</i></td>
+				<td></td>
+				<td align="center" bgcolor="#d0d0f0">GEOS-3100</td>
+				<td>return a constrained Delaunay triangulation of the vertices of the given polygon(s).<hr>
+					NULL is returned on failure.</td></tr>
 			<tr><td><b>VoronojDiagram</b></td>
 				<td>VoronojDiagram( geom <i>Geometry</i> [ , edges_only <i>Boolean</i> [ , frame_extra_size <i>Double precision</i> [ , tolerance <i>Double precision</i> ] ] ] ) : <i>Geometry</i><hr>
 					ST_VoronojDiagram( geom <i>Geometry</i> [ , edges_only <i>Boolean</i>  [ , frame_extra_size <i>Double precision</i> [ , tolerance <i>Double precision</i> ] ] ] ) : <i>Geometry</i></td>
@@ -2767,6 +2812,187 @@ This function only supports Long/Lat coordinates, and will return NULL for any p
                                         By setting the optional <b>allow_holes</b> argument to <b>TRUE</b> all <i>interior holes</i> will be preserved.<br>
                                         The optional argument <b>tolerance</b> is intended to normalize the input Geometry, suppressing repeated (or too close) Points.<br>
 					NULL is returned on failure.</td></tr>
+			<tr><td><b>HausdorffDistance</b></td>
+				<td>HausdorffDistance( geom1 <i>Geometry</i> , geom2 <i>Geometry</i> ) : <i>Double precision</i><hr>
+					HausdorffDistance( geom1 <i>Geometry</i> , geom2 <i>Geometry</i> , densify_fract <i>Double precision</i> ) : <i>Double precision</i><hr>
+					ST_HausdorffDistance( geom1 <i>Geometry</i> , geom2 <i>Geometry</i> ) : <i>Double precision</i><hr>
+					ST_HausdorffDistance( geom1 <i>Geometry</i> , geom2 <i>Geometry</i> , densify_fract <i>Double precision</i> ) : <i>Double precision</i></td>
+				<td></td>
+				<td align="center" bgcolor="#f0d0b0">GEOS-advanced</td>
+				<td>return the Hausdorff distance between geom1 and geom2<br>
+				<a href="http://en.wikipedia.org/wiki/Hausdorff_distance">learn more</a><hr>
+				the optional argument <b>densify_fract</b> is the fraction (in the range <b>0.0 / 1.0</b>) by which to densify
+				each segment. Each segment will be split into a number of equal-lenght subsegments, whose fraction of the total
+				length is closest to the given fraction.<br>
+				The smaller <b>densify_fract</b> we specify, the more acurate Hausdorff distance we get. 
+				But, the computation time and the memory usage increase with the square of the number of subsegments.<hr>
+				The second form of this SQL function (supporting <b>densify_fract</b>) is only available when using <b>GEOS 3.7.0</b> (or any subsequent version).</td></tr>
+			<tr><td><b>FrechetDistance</b></td>
+				<td>FrechetDistance( geom1 <i>Geometry</i> , geom2 <i>Geometry</i> ) : <i>Double precision</i><hr>
+					FrechetDistance( geom1 <i>Geometry</i> , geom2 <i>Geometry</i> , densify_fract <i>Double precision</i> ) : <i>Double precision</i><hr>
+					ST_FrechetDistance( geom1 <i>Geometry</i> , geom2 <i>Geometry</i> ) : <i>Double precision</i><hr>
+					ST_FrechetDistance( geom1 <i>Geometry</i> , geom2 <i>Geometry</i> , densify_fract <i>Double precision</i> ) : <i>Double precision</i></td>
+				<td></td>
+				<td align="center" bgcolor="#f0d0b0">GEOS-advanced</td>
+				<td>return the Fréchet distance between geom1 and geom2<br>
+				<a href="https://en.wikipedia.org/wiki/Fr%C3%A9chet_distance">learn more</a><hr>
+				the optional argument <b>densify_fract</b> is the fraction (in the range <b>0.0 / 1.0</b>) by which to densify
+				each segment. Each segment will be split into a number of equal-lenght subsegments, whose fraction of the total
+				length is closest to the given fraction.<br>
+				The smaller <b>densify_fract</b> we specify, the more acurate Fréchet distance we get. 
+				But, the computation time and the memory usage increase with the square of the number of subsegments.<hr>
+				This SQL function is only available when using <b>GEOS 3.7.0</b> (or any subsequent version).</td></tr>
+			<tr><td><b>GEOSMinimumRotatedRectangle</b></td>
+				<td>GEOSMinimumRotatedRectangle( geom <i>Geometry</i> ) : <i>Geometry</i></td>
+				<td></td>
+				<td align="center" bgcolor="#f0d0b0">GEOS-advanced</td>
+				<td>Returns the minimum rotated rectangular POLYGON which encloses the input geometry.<br>
+				The rectangle has width equal to the minimum diameter, and a longer length.<br>
+				If the convex hull of the input is degenerate (a line or point) a LINESTRING or POINT is returned.<br>
+				The minimum rotated rectangle can be used as an extremely generalized representation for the given geometry.<br>
+				NULL is returned on failure.<hr>
+				This SQL function is only available when using <b>GEOS 3.7.0</b> (or any subsequent version).</td></tr>
+			<tr><td><b>OrientedEnvelope</b></td>
+				<td>OrientedEnvelope( geom <i>Geometry</i> ) : <i>Geometry</i><hr>
+				ST_OrientedEnvelope( geom <i>Geometry</i> ) : <i>Geometry</i></td>
+				<td></td>
+				<td align="center" bgcolor="#f0d0b0">GEOS-advanced</td>
+				<td>Just an alias-name  for <b>GEOSMinimumRotatedRectangle()</b>.</td></tr>
+			<tr><td><b>GEOSMaximumInscribedCircle</b></td>
+				<td>GEOSMaximumInscribedCircle( geom <i>Geometry</i> , tolerance <i>Double precision</i> )  : <i>Geometry</i></td>
+				<td></td>
+				<td align="center" bgcolor="#f0d0b0">GEOS-advanced</td>
+				<td>Constructs the Maximum Inscribed Circle for a  polygonal geometry, up to a specified tolerance.<br>
+				The Maximum Inscribed Circle is determined by a point in the interior of the area
+				which has the farthest distance from the area boundary, along with a boundary point at that distance.<br>
+				A cartographic use case is to determine a suitable point  * to place a map label within a polygon.<br>
+				The radius length of the Maximum Inscribed Circle is a  measure of how "narrow" a polygon is.
+				It is the distance at which the negative buffer becomes empty.<br>
+				The function supports polygons with holes and multipolygons.<br>
+				The implementation uses a successive-approximation technique over a grid of square cells covering the area geometry.
+				The grid is refined using a branch-and-bound algorithm. Point containment and distance are computed in a performant way by using spatial indexes.<hr>
+				Returns a two-point linestring, with one point at the center of the inscribed circle and the other on the boundary of the inscribed circle..<br>
+				NULL is returned on failure.<hr>
+				This SQL function is only available when using <b>GEOS 3.7.0</b> (or any subsequent version).</td></tr>
+			<tr><td><b>GEOSMinimumBoundingCircle</b></td>
+				<td>GEOSMinimumBoundingCircle( geom <i>Geometry</i> )  : <i>Geometry</i></td>
+				<td></td>
+				<td align="center" bgcolor="#f0d0b0">GEOS-advanced</td>
+				<td>Constructs the Minimum Bounding Circle for a  generic geometry.<br>
+				The Minimum Bounding Circle is the smallest circle that contains the input.<hr>
+				Returns a two-point linestring, with one point at the center of the bounding circle and the other on the boundary of the bounding circle.<br>
+				NULL is returned on failure.<hr>
+				This SQL function is only available when using <b>GEOS 3.7.0</b> (or any subsequent version).</td></tr>
+			<tr><td><b>GEOSMinimumBoundingRadius</b></td>
+				<td>GEOSMinimumBoundingRadius( geom <i>Geometry</i> )  : <i>Double precision</i></td>
+				<td></td>
+				<td align="center" bgcolor="#f0d0b0">GEOS-advanced</td>
+				<td>Returns the Radius of the Minimum Bounding Circle for a  generic geometry.<br>
+				NULL is returned on failure.<hr>
+				This SQL function is only available when using <b>GEOS 3.7.0</b> (or any subsequent version).</td></tr>
+			<tr><td><b>GEOSMinimumBoundingCenter</b></td>
+				<td>GEOSMinimumBoundingCenter( geom <i>Geometry</i> )  : <i>Geometry</i></td>
+				<td></td>
+				<td align="center" bgcolor="#f0d0b0">GEOS-advanced</td>
+				<td>Returns a POINT Geometry corresponding to the Center of the Minimum Bounding Circle for a  generic geometry.<br>
+				NULL is returned on failure.<hr>
+				This SQL function is only available when using <b>GEOS 3.7.0</b> (or any subsequent version).</td></tr>
+			<tr><td><b>GEOSLargestEmptyCircle</b></td>
+				<td>GEOSLargestEmptyCircle( geom <i>Geometry</i> , tolerance <i>Double precision</i> )  : <i>Geometry</i></td>
+				<td></td>
+				<td align="center" bgcolor="#f0d0b0">GEOS-advanced</td>
+				<td>Constructs the Largest Empty Circle for a set of obstacle geometries, up to a specified tolerance.
+				The obstacles are point and line geometries.<br>
+				The Largest Empty Circle is the largest circle which has its center in the convex hull of the
+				obstacles (the boundary), and whose interior does not intersect with any obstacle.<br>
+				The circle center is the point in the interior of the boundary which has the farthest distance from the obstacles (up to tolerance).<br> 
+				The circle is determined by the center point and a point lying on an obstacle indicating the circle radius.<br>
+				The implementation uses a successive-approximation technique over a grid of square cells covering the area geometry.
+				The grid is refined using a branch-and-bound algorithm. Point containment and distance are computed in a performant way by using spatial indexes.<hr>
+				Returns a two-point linestring, with one point at the center of the inscribed circle and the other on the boundary of the inscribed circle..<br>
+				NULL is returned on failure.<hr>
+				This SQL function is only available when using <b>GEOS 3.7.0</b> (or any subsequent version).</td></tr>
+			<tr><td><b>GEOSMinimumWidth</b></td>
+				<td>GEOSMinimumWidth( geom <i>Geometry</i> )  : <i>Geometry</i></td>
+				<td></td>
+				<td align="center" bgcolor="#f0d0b0">GEOS-advanced</td>
+				<td>Returns a LINESTRING geometry which represents the minimum diameter of the geometry.<br>
+				The minimum diameter is defined to be the width of the smallest band that contains the geometry, 
+				where a band is a strip of the plane defined by two parallel lines.<br>
+				This can be thought of as the smallest hole that the geometry can be moved through, with a single rotation.<br>
+				NULL is returned on failure.<hr>
+				This SQL function is only available when using <b>GEOS 3.7.0</b> (or any subsequent version).</td></tr>
+			<tr><td><b>GEOSMinimumClearance</b></td>
+				<td>GEOSMinimumClearance( geom <i>Geometry</i> )  : <i>Double precision</i></td>
+				<td></td>
+				<td align="center" bgcolor="#f0d0b0">GEOS-advanced</td>
+				<td>Computes the minimum clearance of a geometry.<br>
+				The minimum clearance is the smallest amount by which a vertex could be move to produce an invalid 
+				polygon, a non-simple linestring, or a multipoint with repeated points.<br>
+				If the minimum clearance cannot be defined for a geometry (such as with a single point, or a multipoint
+				whose points are identical, a value of Infinity will be calculated.<br>
+				NULL is returned on failure.<hr>
+				This SQL function is only available when using <b>GEOS 3.7.0</b> (or any subsequent version).</td></tr>
+			<tr><td><b>GEOSMinimumClearanceLine</b></td>
+				<td>GEOSMinimumClearanceLine( geom <i>Geometry</i> ) : <i>Geometry</i></td>
+				<td></td>
+				<td align="center" bgcolor="#f0d0b0">GEOS-advanced</td>
+				<td>Returns a LineString whose endpoints define the minimum clearance of a geometry.<br>
+				NULL is returned on failure, or if the geometry has no minimum clearance (as e.g. a POINT)<hr>
+				This SQL function is only available when using <b>GEOS 3.7.0</b> (or any subsequent version).</td></tr>
+			<tr><td><b>GeosDensify</b></td>
+				<td>GeosDensify( geom <i>Geometry</i> , tolerance <i>Double precision</i> ) : <i>Geometry</i></td>
+				<td></td>
+				<td align="center" bgcolor="#d0d0f0">GEOS-3100</td>
+				<td>return a densified geometry using a given distance tolerance<hr>
+					Additional vertices will be added to every line segment that is greater this <b>tolerance</b>; these vertices will evenly subdivide that segment.
+					Only linear components of input geometry are densified.<br>
+					NULL is returned on failure.</td></tr>
+			<tr><td><b>GeosMakeValid</b></td>
+				<td>GeosMakeValid( geom <i>Geometry</i> [ , keep_collapsed <i>boolean</i>] ) : <i>Geometry</i></td>
+				<td></td>
+				<td align="center" bgcolor="#d0d0f0">GEOS-3100</td>
+				<td>Attempts to make an invalid geometry valid (the GEOS way).<br>
+					If the optional argument <b>keep_collapsed</b> is <b>TRUE</b> all collapsed items (<i>i.e. linestrings reduced to points or polygons reduced to linestrings</i>) will be preserved into the output geometry,
+					otherwise they'll be suppressed (default is <b>TRUE</b>)<br>
+					NULL is returned on failure.<hr>
+					<i>Note</i>: this function is similar to <b>ST_MakeValid()</b> but is based on a completely different algorithm, so results could be very different.</td></tr>
+			<tr><td><b>ReducePrecision</b></td>
+				<td>ReducePrecision( geom <i>Geometry</i> , grid_size <i>Double precision</i> ) : <i>Geometry</i><hr>
+				ST_ReducePrecision( geom <i>Geometry</i> , grid_size <i>Double precision</i> ) : <i>Geometry</i></td>
+				<td></td>
+				<td align="center" bgcolor="#d0d0f0">GEOS-3100</td>
+				<td>Change the coordinate precision of a geometry.<br>
+				The output will be a valid Geometry.<br>
+				NULL is returned on failure.</td></tr>
+			<tr><td><b>HilbertCode</b></td>
+				<td>HilbertCode( geom <i>Geometry</i> , extent <i>Geometry</i> , level <i>integer</i>] ) : <i>Integer</i></td>
+				<td></td>
+				<td align="center" bgcolor="#d0f0f0">GEOS-3110</td>
+				<td>Calculate the <a href="https://en.wikipedia.org/wiki/Hilbert_curve">Hilbert Code</a> of the centroid of a Geometry relative to an Extent.<br>
+					This allows sorting geometries in a deterministic way, such that similar Hilbert Codes are likely to be near each other in a two-dimensional space.
+					<ul>
+						<li><b>geom</b> is the Geometry to be evaluated.</li>
+						<li><b>extent</b> is the reference Extent.</li>
+						<li><b>level</b> is the level of precision of the Hilbert Curve, ranging from <b>1</b> to <b>16</b></li>
+					</ul>
+					NULL is returned on failure.</td></tr>
+			<tr><td><b>GeosConcaveHull</b></td>
+				<td>GeosConcaveHull( geom <i>Geometry</i> , ratio <i>Double precision</i> [ , allow_holes <i>Boolean</i> ] ) : <i>Geometry</i></td>
+				<td></td>
+				<td align="center" bgcolor="#d0f0f0">GEOS-3110</td>
+				<td>return a geometric object representing the ConcaveHull corresponding to the input Geometry<hr>
+					The input Geometry could have any arbitrary type; eventually all Linestring's / Polygon's vertices will be dissolved into Points, so to implicitly always get a MultiPoint.<br>
+					The returned Geometry will always be of the <b>Polygon</b> or <b>MultiPolygon</b> type.<br>
+                                        <ul>
+											<li><b>ratio</b> is expected to range from <b>1.0</b> to <b>0.0</b>
+											<ul>
+												<li>a value of <b>1.0</b> will produce a Convex Hull.</li>
+												<li>a value of <b>0.0</b> will produce a Hull with maximum concaveness.</li>
+											</ul></li>
+                                        </ul>
+                                        By setting the optional <b>allow_holes</b> argument to <b>TRUE</b> the polygonal output may contain <i>interior holes</i> (by default it's set to <b>FALSE</b>).<br>
+					NULL is returned on failure.</td></tr>
 			<tr><td colspan="5" align="center" bgcolor="#f0f0c0">
 				<h3><a name="p14d">SQL functions that implement spatial operators<br>[RTTOPO features]</a></h3></td></tr>
 			<tr><th bgcolor="#d0d0d0">Function</th>
@@ -2781,7 +3007,8 @@ This function only supports Long/Lat coordinates, and will return NULL for any p
 				<td align="center" bgcolor="#f0d0f0">RTTOPO</td>
 				<td>return a geometric object representing the <i>repaired</i> version of the input Geometry.<br>
                                         If the input Geometry was already valid, then it will be returned exactly as it was.<br>
-					NULL is returned on failure.</td></tr>
+					NULL is returned on failure.<hr>
+					See also: <b>GeosMakeValid()</b></td></tr>
 			<tr><td><b>MakeValidDiscarded</b></td>
 				<td>MakeValidDiscarded( geom <i>Geometry</i> ) : <i>Geometry</i><hr>
 					ST_MakeValidDiscarded( geom <i>Geometry</i> ) : <i>Geometry</i></td>
@@ -3316,7 +3543,7 @@ the return type is Integer, with a return value of 1 for TRUE or 0 for FALSE
 					InitAdvancedMetaData( transaction <i>Integer</i> ) : <i>Integer</i>
 				<td></td>
 				<td align="center" bgcolor="#d0f0d0">base</td>
-				<td>This one simply is an utility function intended to create several ancillary metadata tables required by <b>libspatialite v.5</b> and subsequent versions.</v><br>
+				<td>This one simply is an utility function intended to create several ancillary metadata tables required by <b>libspatialite v.5</b> and subsequent versions.<br>
 the return type is Integer, with a return value of 1 for TRUE or 0 for FALSE<hr>
 				<b>Note</b>: will be automatically called by both <b>InitSpatialMetaData()</b> or <b>InitSpatialMetaDataFull()</b>, but could be usefull for recovering
 				old databases created by earlier versions; it's absolutely harmless because any existing MetaTable will be left untouched.</td></tr>
@@ -3343,7 +3570,7 @@ the return type is Integer, with a return value of 1 for TRUE or 0 for FALSE<hr>
 					CreateMissingSystemTables( relaxed <i>Integer</i> , transaction <i>Integer</i> ) : <i>Integer</i>
 				<td></td>
 				<td align="center" bgcolor="#d0f0d0">base</td>
-				<td>This function will create any missing ancillary metadata table required by <b>libspatialite v.5</b> and subsequent versions.</v><br>
+				<td>This function will create any missing ancillary metadata table required by <b>libspatialite v.5</b> and subsequent versions.<br>
 				<ul>
 					<li>the <i>optional</i> argument <b>relaxed</b> has the same interpretation as in <b>CreateStylingTables()</b>:
 					if it is explicitly set as <b>TRUE</b> then
@@ -3355,6 +3582,15 @@ the return type is Integer, with a return value of 1 for TRUE or 0 for FALSE<hr>
 				An exception will be raised on invalid arguments or on failure.<hr>
 				<b>Note</b>: this SQL function is intended for safely upgrading
 				old databases created by earlier versions; it's absolutely harmless because any existing MetaTable will be left untouched.</td></tr>
+			<tr><td><b>CreateMissingRasterlite2Columns</b></td>
+				<td>CreateMissingRasterlite2Columns( void ) : <i>Integer</i></td>
+				<td></td>
+				<td align="center" bgcolor="#d0f0d0">base</td>
+				<td>This function will create any missing column on metadata tables required by <b>librasterlite2 v.2</b> and subsequent versions.<br><br>
+				The return type is Integer, with a return value of 1 on success and 0 on failure.<hr>
+				<b>Note</b>: this SQL function is intended for safely upgrading
+				old databases created by earlier versions of SpatiaLite (5.0.0 or 5.0.1); it's absolutely harmless if the currently 
+				connected DB already has all the columns required by Rasterlite2 v.2.0</td></tr>
 			<tr><td><b>InsertEpsgSrid</b></td>
 				<td>InsertEpsgSrid( srid <i>Integer</i> ) : <i>Integer</i></td>
 				<td></td>
@@ -3518,20 +3754,6 @@ NULL will be returned if the requested RTree doesn't exist<hr>
 the return type is Integer, with a return value of 1 for TRUE or 0 for FALSE<br>
 NULL will be returned if the requested RTree doesn't exist<hr>
 -1 will be returned if any physical column named "rowid" (caseless) shadowing the real ROWID is detected.</td></tr>
-		<tr><td><b>GetSpatialIndexExtent</b></td>
-				<td>GetSpatialIndexExtent( db_prefix <i>String</i> , table <i>String</i> , column <i>String</i> ) : <i>Geometry</i></td>
-				<td></td>
-				<td align="center" bgcolor="#d0f0d0">base</td>
-				<td>Retrieves the Full Extent from an RTree <b>Spatial Index</b> supporting a <b>SpatialTable</b>/<b>SpatialView</b> or a <b>GeoPackage-Geometry</b>.
-				<ul>
-					<li>The <b>db_prefix</b> argument specifies which one of the ATTACHED databases is expected to contain the RTree; if <b>NULL</b> then the <b>MAIN</b> database will be assumed by default.</li>
-					<li>The <b>table</b> and <b>column</b> arguments specifying which Table and Geometry is intended.</li>
-				</ul>
-				<hr>
-				returns a Rectangle (Polygon Geometry). The Polygon is defined by the corner points of the RTree's Full Extent [(MINX, MINY),(MAXX, MINY), (MAXX, MAXY), (MINX, MAXY), (MINX, MINY)].<br>
-				<b>NULL</b> will be returned on invalid arguments, or on a not existing Table/Geometry, or if no coresponding Spatial Index exists.<hr>
-				<u>Plase note</u>: retrieving the Full Extenxt from an RTree is a very quick operation even when performed on a Table/Geometry containing many million rows.<br>
-				<u>Also</u>: The returned Geometry will be a Spatialite-Binary, even when a GeoPackage-Table/Geometry has been requested.</td></tr>
 		<tr><td><b>InvalidateLayerStatistics</b></td>
 				<td>InvalidateLayerStatistics( [ void ) : <i>Integer</i><hr>
 					InvalidateLayerStatistics( table <i>String</i> [ , column <i>String</i> ] ) : <i>Integer</i></td>
@@ -3800,6 +4022,18 @@ the return type is Integer, with a return value of 1 for TRUE (success) or 0 for
 					<li><b>coverage_name</b> must identify an existing Vector Coverage.</li>
 					<li><b>copyright</b> identifies the Copyright holder; if <b>NULL</b> the current value will be preserved.</li>
 					<li>the optional argument <b>license</b> must reference one the Data Licenses registered into the <b>data_licenses</b> table, as e.g. <i>CC0 1.0</i> or <i>CC BY 4.0</i>.</li>
+				</ul><hr>
+the return type is Integer, with a return value of 1 for TRUE (success) or 0 for FALSE (failure): -1 will be
+				returned on invalid arguments.</td></tr>
+		<tr><td><b>SE_SetVectorCoverageVisibilityRange</b></td>
+				<td>SE_SetVectorCoverageVisibilityRange( coverage_name <i>String</i> , minScaleDenominator <i>Double</i> , maxScaleDenominator <i>Double</i> ): <i>Integer</i></td>
+				<td></td>
+				<td align="center" bgcolor="#99d099">libxml2</td>
+				<td>Updates the Visibility Scale Range associated to a <b>Vector Coverage</b>.
+				<ul>
+					<li><b>coverage_name</b> must identify an existing Vector Coverage.</li>
+					<li><b>minScaleDenominator</b> and <b>maxScaleDenominator</b> set the upper and lower visibility limits.<br>
+						The one or the other (or both) can legitimately be set to <b>NULL</b>, thus meaning that the corresponding limit is intentionally left unassigned.</li>
 				</ul><hr>
 the return type is Integer, with a return value of 1 for TRUE (success) or 0 for FALSE (failure): -1 will be
 				returned on invalid arguments.</td></tr>
@@ -4161,6 +4395,28 @@ the return type is Integer, with a return value of 1 for TRUE (success) or 0 for
 				</ul><hr>
 the return type is Integer, with a return value of 1 for TRUE (success) or 0 for FALSE (failure): -1 will be
 				returned on invalid arguments.</td></tr>
+		<tr><td><b>ReCreateIsoMetaRefsTriggers</b></td>
+				<td>ReCreateIsoMetaRefsTriggers() : <i>Integer</i><hr>
+					ReCreateIsoMetaRefsTriggers( enable_eval <i>Integer</i> ) : <i>Integer</i></td>
+				<td></td>
+				<td align="center" bgcolor="#99d099">libxml2</td>
+				<td>Drops and creates again two Triggers supporting the <b>ISO_metadata_reference</b> table.
+				<ul>
+					<li>the <i>optional</i> argument <b>enable_eval</b> chooses wich type of validating Triggers
+					 will be installed. By default this argument is always set to <b>FALSE</b> (<b>0</b>)
+					 <ul>
+						 <li><b>enable_eval=FALSE</b>: both the <b>ISO_metadata_reference_row_id_value_insert</b> and
+						 the <b>ISO_metadata_reference_row_id_value_update</b> Triggers will be defined in such a way
+						 to never check if the referenced row in the target table do really exist.</li>
+						 <li><b>enable_eval=TRUE</b>: in this case both Triggers will fully check if the referenced row in the target table do really exist.<br>
+						 But for doing such a task they'll require to call the <b>eval()</b> function, that only works when <b>SPATIALITE_SECURITY=relaxed</b> is set,
+						 this being a potentially harmful option in many cases.</li>
+						 <li><u>Note</u>: <b>CreateIsoMetadataTables()</b> will always create the version of both Triggers not using <b>eval()</b>; you are
+						 free to switch between the two altenatives by calling this function.</li>
+					 </ul></li>
+				</ul><hr>
+the return type is Integer, with a return value of 1 for TRUE (success) or 0 for FALSE (failure): -1 will be
+				returned on invalid arguments.</td></tr>
 		<tr><td><b>RegisterIsoMetadata</b></td>
 				<td>RegisterIsoMetadata( scope <i>String</i> , metadata <i>BLOB</i> ) : <i>Integer</i><hr>
 				RegisterIsoMetadata( scope <i>String</i> , metadata <i>BLOB</i> , id Integer ) : <i>Integer</i><hr>
@@ -4510,43 +4766,6 @@ the return type is Integer, with a return value of 1 for TRUE, 0 for FALSE</td><
 				<td>Creates an MBR identified by extreme points <b>x1 y1</b> and <b>x2 y2</b><hr>
 				This fuction is used internally by <u><i>triggers</i></u> related to MbrCache management,
 				and is not intended for any other usage</td></tr>
-			<tr><td colspan="5" align="center" bgcolor="#f0f0c0">
-				<h3><a name="p18">SQL functions for R*Tree-based queries (Geometry Callbacks)</a></h3></td></tr>
-			<tr><th bgcolor="#d0d0d0">Function</th>
-				<th bgcolor="#d0d0d0">Syntax</th>
-				<th bgcolor="#d0d0d0">OGC<br>defined</th>
-				<th bgcolor="#d0d0d0">required<br>module</th>
-				<th bgcolor="#d0d0d0">Summary</th></tr>
-			<tr><td><b>RTreeIntersects</b></td>
-				<td>RTreeIntersects(  x1 <i>Double precision</i> , y1 <i>Double precision</i> ,
-				x2 <i>Double precision</i> , y2 <i>Double precision</i> )</td>
-				<td></td>
-				<td align="center" bgcolor="#d0d0d0">geocallbacks</td>
-				<td>Retrieves from an R*Tree Spatial Index any entity whose MBR <u><i>intersect</i></u>
-				the rectangle identified by extreme points <b>x1 y1</b> and <b>x2 y2</b></td></tr>
-			<tr><td><b>RTreeWithin</b></td>
-				<td>RTreeWithin(  x1 <i>Double precision</i> , y1 <i>Double precision</i> ,
-				x2 <i>Double precision</i> , y2 <i>Double precision</i> )</td>
-				<td></td>
-				<td align="center" bgcolor="#d0d0d0">geocallbacks</td>
-				<td><b>Deprecated function</b><br>
-					Still maintained so to avoid backward compatibility issues, but now simply is an 
-					<i>alias-name</i> for <b>RTreeIntersects</b></td></tr>
-			<tr><td><b>RTreeContains</b></td>
-				<td>RTreeContains(  x1 <i>Double precision</i> , y1 <i>Double precision</i> ,
-				x2 <i>Double precision</i> , y2 <i>Double precision</i> )</td>
-				<td></td>
-				<td align="center" bgcolor="#d0d0d0">geocallbacks</td>
-				<td><b>Deprecated function</b><br>
-					Still maintained so to avoid backward compatibility issues, but now simply is an 
-					<i>alias-name</i> for <b>RTreeIntersects</b></td></tr>
-			<tr><td><b>RTreeDistWithin</b></td>
-				<td>RTreeDistWithin(  x <i>Double precision</i> , y <i>Double precision</i> ,
-				radius <i>Double precision</i> )</td>
-				<td></td>
-				<td align="center" bgcolor="#d0d0d0">geocallbacks</td>
-				<td>Retrieves from an R*Tree Spatial Index any entity whose MBR <u><i>intersect</i></u>
-				the square circumscribed on the given circle (<b>x y</b> center, <b>radius)</b></td></tr>
             <tr><td colspan="5" align="center" bgcolor="#f0f0c0">
 				<h3><a name="xmlBlob">SQL functions supporting XmlBLOB</a></h3></td></tr>
 			<tr><th bgcolor="#d0d0d0">Function</th>
@@ -5867,7 +6086,12 @@ the return type is Integer, with a return value of 1 for TRUE, 0 for FALSE</td><
 				    WMS_RegisterGetMap( getcapabilitites_url <i>Text</i> , getmap_url <i>Text</i> , layer_name <i>Text</i> , title <i>Text</i> , abstract <i>Text</i> , 
 				    version <i>Text</i>, ref_sys <i>Text</i> , image_format <i>Text</i> , style <i>Text</i> , is_transparent <i>Boolean</i> , flip_axes <i>Boolean</i> , 
 				    is_tiled <i>Boolean</i> , is_cached <i>Boolean</i> , tile_width <i>Integer</i> , tile_height <i>Integer</i> , bgcolor <i>Text</i> ,
-				    is_queryable <i>Boolean</i> , getfeatureinfo_url <b>Text</b> ) : <i>Integer</i></td>
+				    is_queryable <i>Boolean</i> , getfeatureinfo_url <i>Text</i> ) : <i>Integer</i><hr>
+				    WMS_RegisterGetMap( getcapabilitites_url <i>Text</i> , getmap_url <i>Text</i> , layer_name <i>Text</i> , title <i>Text</i> , abstract <i>Text</i> , 
+				    version <i>Text</i>, ref_sys <i>Text</i> , image_format <i>Text</i> , style <i>Text</i> , is_transparent <i>Boolean</i> , flip_axes <i>Boolean</i> , 
+				    is_tiled <i>Boolean</i> , is_cached <i>Boolean</i> , tile_width <i>Integer</i> , tile_height <i>Integer</i> , bgcolor <i>Text</i> ,
+				    is_queryable <i>Boolean</i> , getfeatureinfo_url <i>Text</i> , cascaded <i>Integer</i> , </i>minScaleDenominato <i>Double</i> , 
+				    maxScaleDenominator <i>Double</i> ) : <i>Integer</i></td>
 				<td colspan="3">Registers a WMS layer.
 					<ul>
 						<li><b>getcapabilities_url</b>: URL referencing the parent <i>WMS GetCapabilities</i> request (must be already registered).</li>
@@ -5888,6 +6112,10 @@ the return type is Integer, with a return value of 1 for TRUE, 0 for FALSE</td><
 						<li><b>bgcolor</b> (<i>optional arg</i>): image background color (<i>Hex RGB color</i> as e.g. <b>'ff8000'</b> or <b>'A8A8A8'</b>).</li>
 						<li><b>is_queriable</b> (<i>optional arg</i>): if the <i>WMS Layer</i> supports or not <i>GetFeatureInfo</i> requests.</li>
 						<li><b>getfeatureinfo_url</b> (<i>optional arg</i>): base URL corresponding to a <i>WMS GetFeatureInfo</i> request.</li>
+						<li><b>cascaded</b> (<i>optional arg</i>): number of cascaded WMS servers.
+							Can be legitimately set to <b>NULL</b>, thus intending <i>Unknown/Undefined</i>.</li>
+						<li><b>minScaleDenominator</b> and <b>maxScaleDenominator</b>  (<i>optional args</i>) are intended to set the lower and upper limits of the Visibility Scale Range.
+							Both can be legitimately set to <b>NULL</b>, thus intending that the corresponding limit is intentionally left undefined.</li>
 					</ul><hr>
 					Will return <b>1</b> on success; <b>0</b> on failure; <b>-1</b> on invalid arguments.</td></tr>
 			<tr><td><b>WMS_UnRegisterGetMap</b></td>
@@ -5921,7 +6149,7 @@ the return type is Integer, with a return value of 1 for TRUE, 0 for FALSE</td><
 				    WMS_RegisterSetting( getmap_url <i>Text</i> , layer_name <i>Text</i> , key <i>Text</i> , value <i>Text</i> , is_default <i>Boolean</i> ) : <i>Integer</i></td>
 				<td colspan="3">Registers an alternative setting for the WMS Layer identified by <b>getmap_url</b> and <b>layer_name</b>.
 					<ul>
-						<li><b>key</b>: identifies a specific multi-value setting, and should be one between <b>version</b>, <b>format</b> or <b>style</b>.</li>
+						<li><b>key</b>: identifies a specific multi-value setting, and should be either <b>version</b> or <b>format</b>.</li>
 						<li><b>value</b>: an alternative setting value. Examples:
 							<ul>
 								<li><i>key</i> = <b>'version'</b> , <i>value</i> = '<b>'1.0.0'</b></li>
@@ -5931,6 +6159,17 @@ the return type is Integer, with a return value of 1 for TRUE, 0 for FALSE</td><
 							</ul>
 						</li>
 						<li><b>is_default</b> (<i>optional arg</i>): if the corresponding value will become the standard setting for the corresponding WMS Layer (<b>FALSE</b> if undefined).</li>
+					</ul><hr>
+					Will return <b>1</b> on success; <b>0</b> on failure; <b>-1</b> on invalid arguments.</td></tr>
+			<tr><td><b>WMS_RegisterStyle</b></td>
+				<td>WMS_RegisterStyle( getmap_url <i>Text</i> , layer_name <i>Text</i> , style_name <i>Text</i> , style_title <i>Text</i> , style_abstract <i>Text</i> ) : <i>Integer</i><hr>
+				    WMS_RegisterStyle( getmap_url <i>Text</i> , layer_name <i>Text</i> , style_name <i>Text</i> , style_title <i>Text</i> , style_abstract <i>Text</i> , is_default <i>Boolean</i> ) : <i>Integer</i></td>
+				<td colspan="3">Registers an alternative style available for the WMS Layer identified by <b>getmap_url</b> and <b>layer_name</b>.
+					<ul>
+						<li><b>style_name</b>: Name of the supported Style.</li>
+						<li><b>style_title</b>: Title of the supported Style.</li>
+						<li><b>style_abstract</b>: Abstract of the supported Style. Can legitimately be <b>NULL</b> if undefined.</li>
+						<li><b>is_default</b> (<i>optional arg</i>): if the corresponding value will become the standard Style for the corresponding WMS Layer (<b>FALSE</b> if undefined).</li>
 					</ul><hr>
 					Will return <b>1</b> on success; <b>0</b> on failure; <b>-1</b> on invalid arguments.</td></tr>
 			<tr><td><b>WMS_UnRegisterSetting</b></td>
@@ -6208,12 +6447,12 @@ the return type is Integer, with a return value of 1 for TRUE, 0 for FALSE</td><
 				<li>Optional arguments:
 				<ul>
 					<li><b>srid</b> EPSG SRID value; <i>-1</i> by default.</li>
-					<li><b>geom_column</b> name to assigned to the Geometry column; <i>Geometry</i> by default.</li>
+					<li><b>geom_column</b> name to assigned to the Geometry column; <i>Geometry</i> by default (it can legitimately be <b>NULL</b>).</li>
 					<li><b>pk_column</b> name of a DBF column to be used in the Primary Key role; an <i>INTEGER AUTOINCREMENT</i> 
-					PK will be created by default.</li>
+					PK will be created by default (it can legitimately be <b>NULL</b>).</li>
 					<li><b>geometry_type</b> one between: <i>AUTO</i>, <i>POINT|Z|M|ZM</i>, <i>LINESTRING|Z|M|ZM</i>,
 						<i>POLYGON|Z|M|ZM</i>, <i>MULTIPOINT|Z|M|ZM</i>, <i>LINESTRING|Z|M|ZM</i>, <i>MULTIPOLYGON|Z|M|ZM</i>;
-						 by default <i>AUTO</i>.</li>
+						 by default <i>AUTO</i> (it can legitimately be <b>NULL</b>).</li>
 					<li><b>coerce2D</b> boolean flag: casting to 2D or not; <i>0</i> by default.</li>
 					<li><b>compressed</b> boolean flag; compressed geometries or not; <i>0</i> by default.</li>
 					<li><b>spatial_index</b> boolean flag: immediately building a Spatial Index or not; <i>0</i> by default.</li>
@@ -6230,7 +6469,7 @@ the return type is Integer, with a return value of 1 for TRUE, 0 for FALSE</td><
 				</ul></li>
 				</ul>
 				<hr>
-				Will return the total number of imported rows.<br> <b>NULL</b> will be returned on invalid arguments.<hr>
+				Will return the total number of imported rows.<br> <b>NULL</b> will be returned on invalid arguments or on any other error condition.<hr>
                 <u>Please note well</u>: this SQL function opens the door to many potential security issues, and thus is always <i>disabled by default</i>.<br>
                 Explicitly setting the environment variable <b>SPATIALITE_SECURITY=relaxed</b> is absolutely required in order to enable this function.</td></tr>
 			<tr><td><b>ImportZipSHP</b></td>
@@ -6295,7 +6534,7 @@ the return type is Integer, with a return value of 1 for TRUE, 0 for FALSE</td><
 				<li>Optional arguments:
 				<ul>
 					<li><b>pk_column</b> name of a DBF column to be used in the Primary Key role; an <i>INTEGER AUTOINCREMENT</i> 
-					PK will be created by default.</li>
+					PK will be created by default (it can legitimately be <b>NULL</b>).</li>
 					<li><b>text_dates</b> boolean flag: interpreting DBF dates as plaintext or not: <i>0</i> by default
 					(i.e. as <i>Julian Day</i>).</li>
 					<li><b>colname_case</b> one between:<ul>
@@ -6306,7 +6545,7 @@ the return type is Integer, with a return value of 1 for TRUE, 0 for FALSE</td><
 				</ul></li>
 				</ul>
 				<hr>
-				Will return the total number of imported rows.<br> <b>NULL</b> will be returned on invalid arguments.<hr>
+				Will return the total number of imported rows.<br> <b>NULL</b> will be returned on invalid arguments or on any other error condition.<hr>
                 <u>Please note well</u>: this SQL function opens the door to many potential security issues, and thus is always <i>disabled by default</i>.<br>
                 Explicitly setting the environment variable <b>SPATIALITE_SECURITY=relaxed</b> is absolutely required in order to enable this function.</td></tr>
 			<tr><td><b>ImportZipDBF</b></td>
@@ -6400,7 +6639,7 @@ the return type is Integer, with a return value of 1 for TRUE, 0 for FALSE</td><
 				<td>ExportGeoJSON2( table <i>Text</i> , geo_column <i>Text</i> , filename <i>Text</i> ) : <i>Integer</i><hr>
 				ExportGeoJSON2( table <i>Text</i> , geo_column <i>Text</i> , filename <i>Text</i> 
 				[ , precision <i>Integer</i> [ , lon_lat <i>Boolen</i> [ , M_coords <i>Boolean</i> [ , indented <i>Boolean</i> [ , colname_case <i>Text</i> ] ] ] ] ] ) : <i>Integer</i></td>
-				<td colspan="3">Will export an internal Table as an external GeoJSON file that is conformant to the <b>RFC 4796</b> specifications:
+				<td colspan="3">Will export an internal Table as an external GeoJSON file that is conformant to the <b>RFC 7946</b> specifications:
 				<ul>
 					<li>Mandatory aguments:
 					<ul>
@@ -6415,7 +6654,7 @@ the return type is Integer, with a return value of 1 for TRUE, 0 for FALSE</td><
 							and latitudes (as required by RFC 7946), and <b>ST_Transform</b> will be automatically called if and when required.<br>
 								If <i>FALSE</i> all coordinates are assumed to be expressed in any other (undefined) CRS.</li>
 						<li><b>M_coords</b> if <i>TRUE</i> eventual M-values will be exported as extra coordinates.<br>
-						       If <i>FALSE</i> strict RFC 4796 conformance will be applied (no M-Values will be exported)</li>
+						       If <i>FALSE</i> strict RFC 7946 conformance will be applied (no M-Values will be exported)</li>
 						<li><b>indented</b> if <i>TRUE</i> the GeoJSON file will be properly indented for enhanced human readibility<br>
 						    If <i>FALSE</i> the whole GeoJSON file will be in a single monolithic line without blank spaces.</li>
 						<li><b>colcase_name</b> one between <i>LOWER | LOWERCASE</i>, <i>UPPER | UPPERCASE</i> or <i>SAME | SAMECASE</i>
@@ -6429,7 +6668,7 @@ the return type is Integer, with a return value of 1 for TRUE, 0 for FALSE</td><
 			<tr><td><b>ImportGeoJSON</b></td>
 				<td>ImportGeoJSON( filename <i>Text</i> , table <i>Text</i> ) : <i>Integer</i><hr>
 				ImportGeoJSON( filename <i>Text</i> , table <i>Text</i> [ , geo_column <i>Text</i> [ , spatial_index <i>Boolean</i> [ , srid <i>Interger</i> [ , colname_case <i>Text</i> ]]]] ) : <i>Integer</i></td>
-				<td colspan="3">Will create a Spatial Table by importing an external GeoJSON file conformant to the <b>RFC 4796</b> specifications:
+				<td colspan="3">Will create a Spatial Table by importing an external GeoJSON file conformant to the <b>RFC 7946</b> specifications:
 				<ul>
 					<li>Mandatory aguments:
 					<ul>
@@ -6455,7 +6694,7 @@ the return type is Integer, with a return value of 1 for TRUE, 0 for FALSE</td><
 				<td>ImportXLS( filename <i>Text</i> , table <i>Text</i> ) : <i>Integer</i><hr>
 				ImportXLS( filename <i>Text</i> , table <i>Text</i> [ , worksheet_index <i>Integer</i>  
 				    [ , first_line_titles <i>Integer</i> ] ] ) : <i>Integer</i></td>
-				<td colspan="3">Will import an external spreadsheet file (<i>Microsoft .xls format</i>) into an internal Table:
+				<td colspan="3">Will import an external spreadsheet file (<i>Microsoft Excel <b>.xls</b> or <b>.xlsx</b> formats or Libre/OpenOffice Calc <b>.ods</b> format</i>) into an internal Table:
 				<ul>
 				<li>Mandatory arguments:
 				<ul>

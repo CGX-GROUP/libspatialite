@@ -2,7 +2,7 @@
 
  se_helpers.c -- SLD/SE helper functions 
 
- version 5.0, 2020 August 1
+ version 5.1.0, 2023 August 4
 
  Author: Sandro Furieri a.furieri@lqt.it
 
@@ -24,7 +24,7 @@ The Original Code is the SpatiaLite library
 
 The Initial Developer of the Original Code is Alessandro Furieri
  
-Portions created by the Initial Developer are Copyright (C) 2008-2021
+Portions created by the Initial Developer are Copyright (C) 2008-2023
 the Initial Developer. All Rights Reserved.
 
 Contributor(s):
@@ -582,7 +582,7 @@ do_reload_map_configuration (sqlite3 * sqlite, sqlite3_int64 id,
 	  if (name == NULL)
 	      sqlite3_bind_null (stmt, 1);
 	  else
-	      sqlite3_bind_text (stmt, 1, name, strlen (name), SQLITE_STATIC);
+	      sqlite3_bind_text (stmt, 1, name, strlen (name), free);
 	  sqlite3_bind_blob (stmt, 2, p_blob, n_bytes, SQLITE_STATIC);
 	  sqlite3_bind_int64 (stmt, 3, id);
 	  ret = sqlite3_step (stmt);
@@ -678,7 +678,8 @@ get_map_configuration_name (void *p_sqlite, int ind)
     int ret;
     int count = 0;
     char *name = NULL;
-    const char *sql = "SELECT name FROM rl2map_configurations_view ORDER BY name";
+    const char *sql =
+	"SELECT name FROM rl2map_configurations_view ORDER BY name";
     ret = sqlite3_get_table (sqlite, sql, &results, &rows, &columns, &errMsg);
     if (ret != SQLITE_OK)
       {
@@ -3144,6 +3145,59 @@ set_vector_coverage_copyright (void *p_sqlite, const char *coverage_name,
     return 1;
 }
 
+SPATIALITE_PRIVATE int
+set_vector_coverage_visibility_range (void *p_sqlite, const char *coverage_name,
+				      double min_scale, double max_scale)
+{
+/* auxiliary function: updates the copyright infos supporting a Vector Coverage */
+    sqlite3 *sqlite = (sqlite3 *) p_sqlite;
+    int ret;
+    const char *sql;
+    sqlite3_stmt *stmt;
+    int old_changes = sqlite3_total_changes (sqlite);
+    int new_changes;
+
+    if (coverage_name == NULL)
+	return 0;
+
+    sql = "UPDATE vector_coverages SET min_scale = ?, max_scale = ? "
+	"WHERE Lower(coverage_name) = Lower(?)";
+    ret = sqlite3_prepare_v2 (sqlite, sql, strlen (sql), &stmt, NULL);
+    if (ret != SQLITE_OK)
+      {
+	  spatialite_e ("setVectorCoverageVisibilityRange: \"%s\"\n",
+			sqlite3_errmsg (sqlite));
+	  return 0;
+      }
+    sqlite3_reset (stmt);
+    sqlite3_clear_bindings (stmt);
+    if (min_scale < 0.0)
+	sqlite3_bind_null (stmt, 1);
+    else
+	sqlite3_bind_double (stmt, 1, min_scale);
+    if (max_scale < 0.0)
+	sqlite3_bind_null (stmt, 2);
+    else
+	sqlite3_bind_double (stmt, 2, max_scale);
+    sqlite3_bind_text (stmt, 3, coverage_name, strlen (coverage_name),
+		       SQLITE_STATIC);
+    ret = sqlite3_step (stmt);
+    if (ret == SQLITE_DONE || ret == SQLITE_ROW)
+	;
+    else
+      {
+	  spatialite_e ("setVectorCoverageVisibilityRange() error: \"%s\"\n",
+			sqlite3_errmsg (sqlite));
+	  sqlite3_finalize (stmt);
+	  return 0;
+      }
+    sqlite3_finalize (stmt);
+    new_changes = sqlite3_total_changes (sqlite);
+    if (old_changes == new_changes)
+	return 0;
+    return 1;
+}
+
 static int
 check_vector_coverage_srid2 (sqlite3 * sqlite, const char *coverage_name,
 			     int srid)
@@ -3657,7 +3711,7 @@ do_update_vector_coverage_extents (sqlite3 * sqlite, const void *cache,
     gaiaGeomCollPtr in;
     gaiaGeomCollPtr out;
     gaiaPointPtr pt;
-    
+
 #ifndef OMIT_PROJ		/* including PROJ.4 */
 
     getProjParams (sqlite, natural_srid, &proj_from);
@@ -4691,7 +4745,7 @@ do_update_raster_coverage_extents (sqlite3 * sqlite, const void *cache,
     gaiaGeomCollPtr in;
     gaiaGeomCollPtr out;
     gaiaPointPtr pt;
-    
+
 #ifndef OMIT_PROJ		/* including PROJ.4 */
 
     getProjParams (sqlite, natural_srid, &proj_from);
@@ -5613,7 +5667,8 @@ register_wms_getmap (void *p_sqlite, const char *getcapabilities_url,
 		     const char *image_format, const char *style,
 		     int transparent, int flip_axes, int tiled, int cached,
 		     int tile_width, int tile_height, const char *bgcolor,
-		     int is_queryable, const char *getfeatureinfo_url)
+		     int is_queryable, const char *getfeatureinfo_url,
+		     int cascaded, double min_scale, double max_scale)
 {
 /* auxiliary function: inserts a WMS GetMap */
     sqlite3 *sqlite = (sqlite3 *) p_sqlite;
@@ -5639,8 +5694,8 @@ register_wms_getmap (void *p_sqlite, const char *getcapabilities_url,
 	      "INSERT INTO wms_getmap (parent_id, url, layer_name, title, abstract, "
 	      "version, srs, format, style, transparent, flip_axes, tiled, "
 	      "is_cached, tile_width, tile_height, bgcolor, is_queryable, "
-	      "getfeatureinfo_url) VALUES "
-	      "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+	      "getfeatureinfo_url, cascaded, min_scale, max_scale) VALUES "
+	      "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 	  ret = sqlite3_prepare_v2 (sqlite, sql, strlen (sql), &stmt, NULL);
 	  if (ret != SQLITE_OK)
 	    {
@@ -5698,6 +5753,18 @@ register_wms_getmap (void *p_sqlite, const char *getcapabilities_url,
 	  else
 	      sqlite3_bind_text (stmt, 18, getfeatureinfo_url,
 				 strlen (getfeatureinfo_url), SQLITE_STATIC);
+	  if (cascaded < 0)
+	      sqlite3_bind_null (stmt, 19);
+	  else
+	      sqlite3_bind_int (stmt, 19, cascaded);
+	  if (min_scale < 0.0)
+	      sqlite3_bind_null (stmt, 20);
+	  else
+	      sqlite3_bind_double (stmt, 20, min_scale);
+	  if (max_scale < 0.0)
+	      sqlite3_bind_null (stmt, 21);
+	  else
+	      sqlite3_bind_double (stmt, 21, max_scale);
 	  ret = sqlite3_step (stmt);
 	  if (ret == SQLITE_DONE || ret == SQLITE_ROW)
 	      ;
@@ -5716,8 +5783,9 @@ register_wms_getmap (void *p_sqlite, const char *getcapabilities_url,
 	  sql =
 	      "INSERT INTO wms_getmap (parent_id, url, layer_name, version, srs, "
 	      "format, style, transparent, flip_axes, tiled, is_cached, "
-	      "tile_width, tile_height, is_queryable) VALUES "
-	      "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)";
+	      "tile_width, tile_height, is_queryable, getfeatureinfo_url, "
+	      "cascaded, min_scale, max_scale) VALUES "
+	      "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 	  ret = sqlite3_prepare_v2 (sqlite, sql, strlen (sql), &stmt, NULL);
 	  if (ret != SQLITE_OK)
 	    {
@@ -5759,6 +5827,26 @@ register_wms_getmap (void *p_sqlite, const char *getcapabilities_url,
 	  if (tile_height > 5000)
 	      tile_height = 5000;
 	  sqlite3_bind_int (stmt, 13, tile_height);
+	  if (is_queryable != 0)
+	      is_queryable = 1;
+	  sqlite3_bind_int (stmt, 14, is_queryable);
+	  if (getfeatureinfo_url == NULL)
+	      sqlite3_bind_null (stmt, 15);
+	  else
+	      sqlite3_bind_text (stmt, 16, getfeatureinfo_url,
+				 strlen (getfeatureinfo_url), SQLITE_STATIC);
+	  if (cascaded < 0)
+	      sqlite3_bind_null (stmt, 17);
+	  else
+	      sqlite3_bind_int (stmt, 17, cascaded);
+	  if (min_scale < 0.0)
+	      sqlite3_bind_null (stmt, 18);
+	  else
+	      sqlite3_bind_double (stmt, 18, min_scale);
+	  if (max_scale < 0.0)
+	      sqlite3_bind_null (stmt, 19);
+	  else
+	      sqlite3_bind_double (stmt, 19, max_scale);
 	  ret = sqlite3_step (stmt);
 	  if (ret == SQLITE_DONE || ret == SQLITE_ROW)
 	      ;
@@ -6526,6 +6614,12 @@ register_wms_setting (void *p_sqlite, const char *url, const char *layer_name,
 	  spatialite_e ("WMS_RegisterSetting: missing parent GetMap\n");
 	  return 0;
       }
+    if (strcasecmp (key, "style") == 0)
+      {
+	  spatialite_e
+	      ("WMS_RegisterSetting: key='style' is only supported by register_wms_style\n");
+	  return 0;
+      }
 
     /* attempting to insert the WMS Setting */
     sql = "INSERT INTO wms_settings (parent_id, key, value, is_default) "
@@ -6680,6 +6774,66 @@ set_wms_default_setting (void *p_sqlite, const char *url,
 	return 0;
     /* updating the WMS GetMap Default Setting */
     return do_wms_set_default (sqlite, url, layer_name, key, value);
+}
+
+SPATIALITE_PRIVATE int
+register_wms_style (void *p_sqlite, const char *url, const char *layer_name,
+		    const char *style_name, const char *style_title,
+		    const char *style_abstract, int is_default)
+{
+/* auxiliary function: inserts a WMS GetMap Style */
+    sqlite3 *sqlite = (sqlite3 *) p_sqlite;
+    int ret;
+    sqlite3_int64 parent_id;
+    const char *sql;
+    sqlite3_stmt *stmt;
+
+    if (!wms_setting_parentid (sqlite, url, layer_name, &parent_id))
+      {
+	  spatialite_e ("WMS_RegisterStyle: missing parent GetMap\n");
+	  return 0;
+      }
+
+    /* attempting to insert the WMS Style */
+    sql =
+	"INSERT INTO wms_settings (parent_id, key, value, style_title, style_abstract, is_default) "
+	"VALUES (?, 'style', ?, ?, ?, ?)";
+    ret = sqlite3_prepare_v2 (sqlite, sql, strlen (sql), &stmt, NULL);
+    if (ret != SQLITE_OK)
+      {
+	  spatialite_e ("WMS_RegisterStyle: \"%s\"\n", sqlite3_errmsg (sqlite));
+	  return 0;
+      }
+    sqlite3_reset (stmt);
+    sqlite3_clear_bindings (stmt);
+    sqlite3_bind_int64 (stmt, 1, parent_id);
+    sqlite3_bind_text (stmt, 2, style_name, strlen (style_name), SQLITE_STATIC);
+    sqlite3_bind_text (stmt, 3, style_title, strlen (style_title),
+		       SQLITE_STATIC);
+    if (style_abstract == NULL)
+	sqlite3_bind_null (stmt, 4);
+    else
+	sqlite3_bind_text (stmt, 4, style_abstract, strlen (style_abstract),
+			   SQLITE_STATIC);
+    if (is_default != 0)
+	is_default = 1;
+    sqlite3_bind_int (stmt, 5, 0);
+    ret = sqlite3_step (stmt);
+    if (ret == SQLITE_DONE || ret == SQLITE_ROW)
+	;
+    else
+      {
+	  spatialite_e ("WMS_RegisterStyle() error: \"%s\"\n",
+			sqlite3_errmsg (sqlite));
+	  sqlite3_finalize (stmt);
+	  return 0;
+      }
+    sqlite3_finalize (stmt);
+
+    if (is_default)
+	return do_wms_set_default (sqlite, url, layer_name, "style",
+				   style_name);
+    return 1;
 }
 
 SPATIALITE_PRIVATE int

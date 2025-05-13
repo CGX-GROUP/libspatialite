@@ -19,6 +19,12 @@
 /* Should be defined in order to enable GEOS_370 support. */
 #define GEOS_370 1
 
+/* Should be defined in order to enable GEOS_3100 support. */
+/* #undef GEOS_3100 */
+
+/* Should be defined in order to enable GEOS_3110 support. */
+/* #undef GEOS_3110 */
+
 /* Should be defined in order to enable GEOS_ADVANCED support. */
 #define GEOS_ADVANCED 1
 
@@ -35,7 +41,7 @@
 /* #undef OMIT_FREEXL */
 
 /* Should be defined in order to disable GEOCALLBACKS support. */
-#define OMIT_GEOCALLBACKS 1
+/* #undef OMIT_GEOCALLBACKS */
 
 /* Should be defined in order to disable GEOS support. */
 /* #undef OMIT_GEOS */
@@ -59,4 +65,4 @@
 #define SPATIALITE_TARGET_CPU "x86_64-redhat-linux"
 
 /* the Version of this package */
-#define SPATIALITE_VERSION "5.0.1"
+#define SPATIALITE_VERSION "5.1.0"

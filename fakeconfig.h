@@ -16,6 +16,12 @@
 /* Should be defined in order to enable RTTOPO support. */
 #define ENABLE_RTTOPO 1
 
+/* Should be defined in order to enable GEOS_3100 support. */
+/* #undef GEOS_3100 */
+
+/* Should be defined in order to enable GEOS_3110 support. */
+/* #undef GEOS_3110 */
+
 /* Should be defined in order to enable GEOS_370 support. */
 #define GEOS_370 1
 
@@ -66,9 +72,6 @@
 
 /* Define to 1 if you have the <librttopo.h> header file. */
 #define HAVE_LIBRTTOPO_H 1
-
-/* Define to 1 if you have the `sqlite3' library (-lsqlite3). */
-#define HAVE_LIBSQLITE3 1
 
 /* Define to 1 if you have the `z' library (-lz). */
 #define HAVE_LIBZ 1
@@ -166,8 +169,7 @@
    slash. */
 #define LSTAT_FOLLOWS_SLASHED_SYMLINK 1
 
-/* Define to the sub-directory in which libtool stores uninstalled libraries.
-   */
+/* Define to the sub-directory where libtool stores uninstalled libraries. */
 #define LT_OBJDIR ".libs/"
 
 /* Must be defined in order to disable debug mode. */
@@ -178,9 +180,6 @@
 
 /* Should be defined in order to disable FREEXL support. */
 /* #undef OMIT_FREEXL */
-
-/* Should be defined in order to disable GEOCALLBACKS support. */
-#define OMIT_GEOCALLBACKS 1
 
 /* Should be defined in order to disable GEOS support. */
 /* #undef OMIT_GEOS */
@@ -204,7 +203,7 @@
 #define PACKAGE_NAME "libspatialite"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "libspatialite 5.0.1"
+#define PACKAGE_STRING "libspatialite 5.1.0"
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "libspatialite"
@@ -213,7 +212,7 @@
 #define PACKAGE_URL ""
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "5.0.1"
+#define PACKAGE_VERSION "5.1.0"
 
 /* Should be defined in order to enable PROJ.6 support. */
 #define PROJ_NEW 1
@@ -222,13 +221,10 @@
 #define SPATIALITE_TARGET_CPU "x86_64-redhat-linux"
 
 /* the Version of this package. */
-#define SPATIALITE_VERSION "5.0.1"
+#define SPATIALITE_VERSION "5.1.0"
 
 /* Define to 1 if you have the ANSI C header files. */
 #define STDC_HEADERS 1
-
-/* Define to 1 if you can safely include both <sys/time.h> and <time.h>. */
-#define TIME_WITH_SYS_TIME 1
 
 /* Define to 1 if your <sys/time.h> declares `struct tm'. */
 /* #undef TM_IN_SYS_TIME */
